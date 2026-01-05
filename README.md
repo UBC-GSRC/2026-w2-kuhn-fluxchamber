@@ -1,3 +1,1 @@
-# Flux Chamber
-This respository is for Kenzie Kuhn's flux chamber experiment. 
-
+# Flux Chamber Data Logger Firmware

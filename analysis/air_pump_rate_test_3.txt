@@ -1,0 +1,48 @@
+This data came from a test in which two 12V air pumps were connected to the air chamber.
+The air chamber did NOT have a water seal at the base so some CO2 was likely leaking from the poor
+seal. But all of the wires at the top of the chamber were sealed using cable glands.
+
+I took the first measurement, then exhaled into the chamber about 10 times. This saturated the sensor
+to read 10,000 ppm. The rest is shown below.
+
+NOTES:
+- 2 air pumps, one pumping out one pumping in, simultaneously
+- Fan to circulate air, wires taped midway up the box
+- I suspect the fan is sucking air in from the bottom because of how fast this was
+
+Date: 2025/12/22 Time: 14:46:08 CO2 (ppm): 537.0 Temp (C): 22.7 RH (%): 57.1
+Date: 2025/12/22 Time: 14:46:39 CO2 (ppm): 7007.0 Temp (C): 22.8 RH (%): 72.2
+Date: 2025/12/22 Time: 14:47:10 CO2 (ppm): 10000.0 Temp (C): 23.2 RH (%): 100.0
+Date: 2025/12/22 Time: 14:47:42 CO2 (ppm): 10000.0 Temp (C): 22.9 RH (%): 92.4
+Date: 2025/12/22 Time: 14:48:13 CO2 (ppm): 9779.0 Temp (C): 22.5 RH (%): 90.8
+Date: 2025/12/22 Time: 14:48:44 CO2 (ppm): 5050.0 Temp (C): 22.2 RH (%): 83.5
+Date: 2025/12/22 Time: 14:49:15 CO2 (ppm): 2659.0 Temp (C): 21.9 RH (%): 64.1
+Date: 2025/12/22 Time: 14:49:46 CO2 (ppm): 1540.0 Temp (C): 21.7 RH (%): 52.7
+Date: 2025/12/22 Time: 14:50:17 CO2 (ppm): 980.0 Temp (C): 21.6 RH (%): 46.8
+Date: 2025/12/22 Time: 14:50:48 CO2 (ppm): 711.0 Temp (C): 21.5 RH (%): 43.8
+Date: 2025/12/22 Time: 14:51:19 CO2 (ppm): 589.0 Temp (C): 21.4 RH (%): 42.2
+Date: 2025/12/22 Time: 14:51:51 CO2 (ppm): 528.0 Temp (C): 21.4 RH (%): 41.4
+This data came from a test in which two 12V air pumps were connected to the air chamber.
+The air chamber did NOT have a water seal at the base so some CO2 was likely leaking from the poor
+seal. But all of the wires at the top of the chamber were sealed using cable glands.
+
+I took the first measurement, then exhaled into the chamber about 10 times. This saturated the sensor
+to read 10,000 ppm. The rest is shown below.
+
+NOTES:
+- 2 air pumps, one pumping out one pumping in, simultaneously
+- Fan to circulate air, wires taped midway up the box
+- I suspect the fan is sucking air in from the bottom because of how fast this was
+
+Date: 2025/12/22 Time: 14:46:08 CO2 (ppm): 537.0 Temp (C): 22.7 RH (%): 57.1
+Date: 2025/12/22 Time: 14:46:39 CO2 (ppm): 7007.0 Temp (C): 22.8 RH (%): 72.2
+Date: 2025/12/22 Time: 14:47:10 CO2 (ppm): 10000.0 Temp (C): 23.2 RH (%): 100.0
+Date: 2025/12/22 Time: 14:47:42 CO2 (ppm): 10000.0 Temp (C): 22.9 RH (%): 92.4
+Date: 2025/12/22 Time: 14:48:13 CO2 (ppm): 9779.0 Temp (C): 22.5 RH (%): 90.8
+Date: 2025/12/22 Time: 14:48:44 CO2 (ppm): 5050.0 Temp (C): 22.2 RH (%): 83.5
+Date: 2025/12/22 Time: 14:49:15 CO2 (ppm): 2659.0 Temp (C): 21.9 RH (%): 64.1
+Date: 2025/12/22 Time: 14:49:46 CO2 (ppm): 1540.0 Temp (C): 21.7 RH (%): 52.7
+Date: 2025/12/22 Time: 14:50:17 CO2 (ppm): 980.0 Temp (C): 21.6 RH (%): 46.8
+Date: 2025/12/22 Time: 14:50:48 CO2 (ppm): 711.0 Temp (C): 21.5 RH (%): 43.8
+Date: 2025/12/22 Time: 14:51:19 CO2 (ppm): 589.0 Temp (C): 21.4 RH (%): 42.2
+Date: 2025/12/22 Time: 14:51:51 CO2 (ppm): 528.0 Temp (C): 21.4 RH (%): 41.4

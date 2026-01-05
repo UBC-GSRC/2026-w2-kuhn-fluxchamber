@@ -1,0 +1,56 @@
+This data came from a test in which two 12V air pumps were connected to the air chamber.
+The air chamber did NOT have a water seal at the base so some CO2 was likely leaking from the poor
+seal. But all of the wires at the top of the chamber were sealed using cable glands.
+
+I took the first measurement, then exhaled into the chamber about 10 times. This saturated the sensor
+to read 10,000 ppm. The rest is shown below.
+
+NOTES:
+- 2 air pumps, one pumping out one pumping in, simultaneously
+- NO fan to circulate air
+
+Date: 2025/12/22 Time: 13:42:50 CO2 (ppm): 581.0 Temp (C): 22.6 RH (%): 39.9
+Date: 2025/12/22 Time: 13:43:21 CO2 (ppm): 835.0 Temp (C): 22.6 RH (%): 39.7
+Date: 2025/12/22 Time: 13:43:52 CO2 (ppm): 10000.0 Temp (C): 23.1 RH (%): 99.9
+Date: 2025/12/22 Time: 13:44:23 CO2 (ppm): 10000.0 Temp (C): 23.5 RH (%): 100.0
+Date: 2025/12/22 Time: 13:44:54 CO2 (ppm): 10000.0 Temp (C): 23.2 RH (%): 100.0
+Date: 2025/12/22 Time: 13:45:25 CO2 (ppm): 10000.0 Temp (C): 23.1 RH (%): 91.6
+Date: 2025/12/22 Time: 13:45:56 CO2 (ppm): 10000.0 Temp (C): 23.1 RH (%): 88.5
+Date: 2025/12/22 Time: 13:46:28 CO2 (ppm): 10000.0 Temp (C): 23.1 RH (%): 87.1
+Date: 2025/12/22 Time: 13:46:59 CO2 (ppm): 9678.0 Temp (C): 23.0 RH (%): 86.3
+Date: 2025/12/22 Time: 13:47:30 CO2 (ppm): 8155.0 Temp (C): 23.0 RH (%): 84.2
+Date: 2025/12/22 Time: 13:48:01 CO2 (ppm): 6918.0 Temp (C): 22.9 RH (%): 82.7
+Date: 2025/12/22 Time: 13:48:32 CO2 (ppm): 5880.0 Temp (C): 22.9 RH (%): 80.6
+Date: 2025/12/22 Time: 13:49:03 CO2 (ppm): 5015.0 Temp (C): 22.8 RH (%): 76.9
+Date: 2025/12/22 Time: 13:49:34 CO2 (ppm): 4254.0 Temp (C): 22.8 RH (%): 73.0
+Date: 2025/12/22 Time: 13:50:06 CO2 (ppm): 3651.0 Temp (C): 22.7 RH (%): 68.6
+Date: 2025/12/22 Time: 13:50:37 CO2 (ppm): 3132.0 Temp (C): 22.7 RH (%): 64.6
+Date: 2025/12/22 Time: 13:51:08 CO2 (ppm): 2702.0 Temp (C): 22.6 RH (%): 60.8
+Date: 2025/12/22 Time: 13:51:39 CO2 (ppm): 2347.0 Temp (C): 22.6 RH (%): 57.4
+Date: 2025/12/22 Time: 13:52:10 CO2 (ppm): 2050.0 Temp (C): 22.5 RH (%): 55.1
+Date: 2025/12/22 Time: 13:52:41 CO2 (ppm): 1788.0 Temp (C): 22.5 RH (%): 52.6
+Date: 2025/12/22 Time: 13:53:12 CO2 (ppm): 1579.0 Temp (C): 22.5 RH (%): 50.7
+Date: 2025/12/22 Time: 13:53:44 CO2 (ppm): 1395.0 Temp (C): 22.4 RH (%): 49.0
+Date: 2025/12/22 Time: 13:54:15 CO2 (ppm): 1248.0 Temp (C): 22.4 RH (%): 47.5
+Date: 2025/12/22 Time: 13:54:46 CO2 (ppm): 1128.0 Temp (C): 22.4 RH (%): 46.3
+Date: 2025/12/22 Time: 13:55:17 CO2 (ppm): 1019.0 Temp (C): 22.4 RH (%): 45.3
+Date: 2025/12/22 Time: 13:55:48 CO2 (ppm): 938.0 Temp (C): 22.4 RH (%): 44.3
+Date: 2025/12/22 Time: 13:56:19 CO2 (ppm): 871.0 Temp (C): 22.3 RH (%): 43.6
+Date: 2025/12/22 Time: 13:56:50 CO2 (ppm): 813.0 Temp (C): 22.3 RH (%): 43.0
+Date: 2025/12/22 Time: 13:57:21 CO2 (ppm): 758.0 Temp (C): 22.3 RH (%): 42.5
+Date: 2025/12/22 Time: 13:57:53 CO2 (ppm): 711.0 Temp (C): 22.3 RH (%): 42.0
+Date: 2025/12/22 Time: 13:58:24 CO2 (ppm): 678.0 Temp (C): 22.2 RH (%): 41.7
+Date: 2025/12/22 Time: 13:58:55 CO2 (ppm): 649.0 Temp (C): 22.2 RH (%): 41.3
+Date: 2025/12/22 Time: 13:59:26 CO2 (ppm): 624.0 Temp (C): 22.2 RH (%): 41.0
+Date: 2025/12/22 Time: 13:59:57 CO2 (ppm): 604.0 Temp (C): 22.2 RH (%): 40.8
+Date: 2025/12/22 Time: 14:00:28 CO2 (ppm): 583.0 Temp (C): 22.2 RH (%): 40.6
+Date: 2025/12/22 Time: 14:00:59 CO2 (ppm): 565.0 Temp (C): 22.2 RH (%): 40.3
+Date: 2025/12/22 Time: 14:01:31 CO2 (ppm): 547.0 Temp (C): 22.2 RH (%): 40.1
+Date: 2025/12/22 Time: 14:02:02 CO2 (ppm): 536.0 Temp (C): 22.2 RH (%): 39.9
+Date: 2025/12/22 Time: 14:02:33 CO2 (ppm): 528.0 Temp (C): 22.1 RH (%): 39.9
+Date: 2025/12/22 Time: 14:03:04 CO2 (ppm): 525.0 Temp (C): 22.1 RH (%): 39.7
+Date: 2025/12/22 Time: 14:03:35 CO2 (ppm): 522.0 Temp (C): 22.1 RH (%): 39.7
+Date: 2025/12/22 Time: 14:04:06 CO2 (ppm): 519.0 Temp (C): 22.1 RH (%): 39.6
+Date: 2025/12/22 Time: 14:04:37 CO2 (ppm): 515.0 Temp (C): 22.1 RH (%): 39.6
+Date: 2025/12/22 Time: 14:05:09 CO2 (ppm): 516.0 Temp (C): 22.1 RH (%): 39.5
+Date: 2025/12/22 Time: 14:05:40 CO2 (ppm): 511.0 Temp (C): 22.1 RH (%): 39.5

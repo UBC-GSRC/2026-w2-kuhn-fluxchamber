@@ -1,0 +1,3 @@
+[submodule "Co2Meter_K33"]
+	path = Co2Meter_K33
+	url = git@github.com:afong3/Co2Meter_K33.git

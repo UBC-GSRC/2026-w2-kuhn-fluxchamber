@@ -1,0 +1,23 @@
+This data came from a test in which two 12V air pumps were connected to the air chamber.
+The air chamber did NOT have a water seal at the base so some CO2 was likely leaking from the poor
+seal. But all of the wires at the top of the chamber were sealed using cable glands.
+
+I took the first measurement, then exhaled into the chamber about 10 times. This saturated the sensor
+to read 10,000 ppm. The rest is shown below.
+
+NOTES:
+- 2 air pumps, one pumping out one pumping in, simultaneously
+- Fan to circulate air, hanging from the top of the chamber by its wires
+
+Date: 2025/12/22 Time: 15:04:18 CO2 (ppm): 10000.0 Temp (C): 22.5 RH (%): 89.7
+Date: 2025/12/22 Time: 15:04:49 CO2 (ppm): 6421.0 Temp (C): 22.2 RH (%): 87.9
+Date: 2025/12/22 Time: 15:05:20 CO2 (ppm): 3554.0 Temp (C): 21.9 RH (%): 75.4
+Date: 2025/12/22 Time: 15:05:51 CO2 (ppm): 2069.0 Temp (C): 21.7 RH (%): 60.4
+Date: 2025/12/22 Time: 15:06:22 CO2 (ppm): 1298.0 Temp (C): 21.6 RH (%): 52.0
+Date: 2025/12/22 Time: 15:06:53 CO2 (ppm): 910.0 Temp (C): 21.5 RH (%): 47.3
+Date: 2025/12/22 Time: 15:07:25 CO2 (ppm): 701.0 Temp (C): 21.4 RH (%): 44.8
+Date: 2025/12/22 Time: 15:07:56 CO2 (ppm): 602.0 Temp (C): 21.4 RH (%): 43.4
+Date: 2025/12/22 Time: 15:08:27 CO2 (ppm): 543.0 Temp (C): 21.3 RH (%): 42.6
+Date: 2025/12/22 Time: 15:08:58 CO2 (ppm): 510.0 Temp (C): 21.3 RH (%): 42.1
+Date: 2025/12/22 Time: 15:09:29 CO2 (ppm): 498.0 Temp (C): 21.3 RH (%): 41.9
+Date: 2025/12/22 Time: 15:10:00 CO2 (ppm): 492.0 Temp (C): 21.4 RH (%): 41.8
