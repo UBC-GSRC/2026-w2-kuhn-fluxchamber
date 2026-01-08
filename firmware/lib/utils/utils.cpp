@@ -21,8 +21,7 @@ Adafruit_SHT4x SHT45_init() {
     return sht4;
 }
 
-void log_data(const std::vector<const char*>& data,
-              const char* filename)
+void log_data(const char* data[], size_t count, const char* filename)
 {
     File dataFile = SD.open(filename, FILE_WRITE);
     if (!dataFile) {
@@ -30,13 +29,13 @@ void log_data(const std::vector<const char*>& data,
         return;
     }
 
-    for (size_t i = 0; i < data.size(); ++i) {
+    for (size_t i = 0; i < count; ++i) {
         dataFile.print(data[i]);
-        if (i < data.size() - 1) {
+        if (i < count - 1) {
             dataFile.print(",");
         }
     }
-    dataFile.print("\n");
+    dataFile.println();
 
     dataFile.close();
 }
