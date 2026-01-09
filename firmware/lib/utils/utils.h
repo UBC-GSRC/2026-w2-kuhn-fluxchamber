@@ -18,7 +18,7 @@ extern int CLOCK_INTERRUPT_PIN;
 
 void SD_init();
 Adafruit_SHT4x SHT45_init();
-void log_data(const std::vector<const char*>& data,
+void log_data(const char* data[], size_t count,
               const char* filename);
 void rtc_init(bool setTime);
 void rtc_print_time(int mode = 0);

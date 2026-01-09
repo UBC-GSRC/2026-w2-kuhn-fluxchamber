@@ -22,14 +22,28 @@ void test_data_logging() {
   // Clear the file first (optional)
   const char* testFile = "testFile.txt";
 
+  if (!SD.exists(testFile)) {
+        File file = SD.open(testFile, FILE_WRITE);
+        if (file) {
+            Serial.print("Created file: ");
+            Serial.println(testFile);
+            file.close();
+        } else {
+            Serial.print("Failed to create file: ");
+            Serial.println(testFile);
+        }
+  }
+
   // Prepare test data (NO String)
-  std::vector<const char*> testRow = {
+  const char* testRow[5] = {
       "Test1",
       "Test2",
-      "Test3"
+      "Test3",
+      "Test4",
+      "Test5"
   };
 
-  log_data(testRow, testFile);
+  log_data(testRow, 5, testFile);
 
   // Read back file
   File dataFile = SD.open(testFile, FILE_READ);
@@ -54,7 +68,7 @@ void test_data_logging() {
   }
 
   // Validate CSV output
-  const char* expectedLine = "Test1,Test2,Test3";
+  const char* expectedLine = "Test1,Test2,Test3,Test4,Test5\r";
   TEST_ASSERT_EQUAL_STRING_MESSAGE(
       expectedLine,
       lastLine.c_str(),
