@@ -167,3 +167,22 @@ int rtc_get_hour(){
     return now.hour();
 }
 
+MethaneSensor::MethaneSensor(int adcChannel) {
+    this->adcChannel = adcChannel;
+    this->voltage_factor = 0.0f;
+}
+
+void MethaneSensor::begin() {
+    ads.begin();          // Initialize hardware
+    ads.setGain(0);
+    voltage_factor = ads.toVoltage(1);
+}
+
+float MethaneSensor::readVoltage() {
+    int16_t val = ads.readADC(adcChannel);
+    return round(val * voltage_factor * 1000.0f) / 1000.0f;
+}
+
+float MethaneSensor::voltageToPPM(float voltage) {
+    return 0.0f; // calibration later
+}

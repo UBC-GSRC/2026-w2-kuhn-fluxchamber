@@ -13,18 +13,20 @@ enum State {
   LOG_DATA,         // Log data to SD card
   SERIAL_LISTEN,    // Listen for serial commands
   SLEEP,            // Enter low-power sleep mode
+  FAKE_SLEEP,       // Fake sleep for testing
   TRANSMIT_STATUS,  // Transmit status over communication module
   ERROR             // Handle errors
 };
 
 Co2Meter_K33 k33;
+MethaneSensor methaneSensor(0);
 State state = INIT;
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
 const unsigned long FLUSH_DURATION = 3 * 1000; // 10 seconds
 const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 10 seconds
 
-const unsigned long FAKE_SLEEP = 15 * 1000; // 15 seconds for testing
+const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
 
 const char* row_data[5]; // Persistent array
 bool shouldSleep = false;
@@ -66,6 +68,7 @@ void setup() {
     Serial.println("SD initialization done.");
     rtc_init(true);
     Wire.begin();
+    methaneSensor.begin();
 
     pinMode(wakeupPin, INPUT_PULLUP);
     // Attach a wakeup interrupt on wakeupPin 8, calling repetitionsIncrease when the device is woken up
@@ -107,6 +110,7 @@ void loop() {
     case READ_DATA: {
       Serial.println("In READ_DATA");
       K33Reading data = k33.getReadings(); // Read sensors
+      float methane_voltage = methaneSensor.readVoltage();
 
       rtc_get_time(1, rtcDate, sizeof(rtcDate));
       rtc_get_time(2, rtcTime, sizeof(rtcTime));
@@ -126,7 +130,8 @@ void loop() {
       Serial.print(" Time: "); Serial.print(rtcTime);
       Serial.print(" CO2 (ppm): "); Serial.print(co2Buf);
       Serial.print(" Temp (C): "); Serial.print(tempBuf);
-      Serial.print(" RH (%): "); Serial.println(rhBuf);
+      Serial.print(" RH (%): "); Serial.print(rhBuf);
+      Serial.print(" Methane (V): "); Serial.println(methane_voltage);
 
       state = LOG_DATA;
       break;
@@ -140,22 +145,24 @@ void loop() {
     case SERIAL_LISTEN:{
       // Code to listen for serial commands
       Serial.println("In SERIAL_LISTEN");
-      state = SLEEP;
+      state = FAKE_SLEEP;
 
       break;
     }
     case SLEEP:{
-      // Serial.println("In SLEEP");
-      // rtc.setAlarm1(rtc.now() + TimeSpan(3), DS3231_A1_Second); // Wake up after 10 seconds
-      // LowPower.sleep(2000); // Gets out of sleep mode from interrupt
-      // state = INIT;
-
+      Serial.println("In SLEEP");
+      rtc.setAlarm1(rtc.now() + TimeSpan(3), DS3231_A1_Second); // Wake up after 10 seconds
+      LowPower.sleep(2000); // Gets out of sleep mode from interrupt
+      state = INIT;
+      break;
+    }
+    case FAKE_SLEEP:{
       if (stateStartMillis == 0) {
-        Serial.println("In SLEEP");
+        Serial.println("In FAKE_SLEEP");
         stateStartMillis = millis();
         // TODO: start flushing logic
       }
-      else if (millis() - stateStartMillis >= FAKE_SLEEP) { // Flush for 10 seconds
+      else if (millis() - stateStartMillis >= FAKE_SLEEP_DURATION) { // Flush for 10 seconds
         state = ACCUMULATE_GAS;
         stateStartMillis = 0;
         state = INIT;

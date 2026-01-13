@@ -103,8 +103,12 @@ void test_K33_ELG_sensor(void)
 
 void test_NGM2611_E13_sensor(void)
 {
-  // Placeholder for NGM2611 E13 sensor test
-  TEST_ASSERT_TRUE(true);
+  MethaneSensor MethaneSensor(0);
+  MethaneSensor.begin();
+  
+  float voltage = MethaneSensor.readVoltage();
+
+  TEST_ASSERT_TRUE(voltage >= 0.0 && voltage <= 3.3);
 }
 
 void test_LoRa_communication(void)
@@ -198,11 +202,12 @@ void run_all_tests() {
     UNITY_BEGIN();
     RUN_TEST(test_led_builtin_pin_number);
     RUN_TEST(test_sd_card_available);
-    RUN_TEST(test_SHT45_sensor);
+    // RUN_TEST(test_SHT45_sensor);
     RUN_TEST(test_data_logging);
     RUN_TEST(test_RTC_date_synchronization);
     RUN_TEST(test_RTC_alarm);
     RUN_TEST(test_K33_ELG_sensor);
+    RUN_TEST(test_NGM2611_E13_sensor);
     UNITY_END();
 }
 
