@@ -39,10 +39,17 @@ char rtcDate[16];
 char rtcTime[16];
 
 unsigned wakeupPin = 1; // Pin to wake up from sleep
+unsigned PIN_FAN = 7; // Pin to control fan
 
 void wakeupCallback() {
   // This function will be called once on device wakeup
   state = SERIAL_LISTEN;
+}
+
+void turnOnFan(int duration_ms) {
+    digitalWrite(PIN_FAN, HIGH);
+    delay(duration_ms);
+    digitalWrite(PIN_FAN, LOW);
 }
 
 void setup() {
@@ -71,7 +78,8 @@ void setup() {
     methaneSensor.begin();
 
     pinMode(wakeupPin, INPUT_PULLUP);
-    // Attach a wakeup interrupt on wakeupPin 8, calling repetitionsIncrease when the device is woken up
+    pinMode(PIN_FAN, OUTPUT);
+
     LowPower.attachInterruptWakeup(wakeupPin, wakeupCallback, CHANGE);
 }
 
@@ -89,6 +97,7 @@ void loop() {
         Serial.println("In FLUSH_CHAMBER");
         stateStartMillis = millis();
         // TODO: start flushing logic
+        turnOnFan(FLUSH_DURATION);
       }
       else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Flush for 10 seconds
         state = ACCUMULATE_GAS;
@@ -110,7 +119,7 @@ void loop() {
     case READ_DATA: {
       Serial.println("In READ_DATA");
       K33Reading data = k33.getReadings(); // Read sensors
-      float methane_voltage = methaneSensor.readVoltage();
+      // float methane_voltage = methaneSensor.readVoltage();
 
       rtc_get_time(1, rtcDate, sizeof(rtcDate));
       rtc_get_time(2, rtcTime, sizeof(rtcTime));
@@ -131,7 +140,7 @@ void loop() {
       Serial.print(" CO2 (ppm): "); Serial.print(co2Buf);
       Serial.print(" Temp (C): "); Serial.print(tempBuf);
       Serial.print(" RH (%): "); Serial.print(rhBuf);
-      Serial.print(" Methane (V): "); Serial.println(methane_voltage);
+      // Serial.print(" Methane (V): "); Serial.println(methane_voltage);
 
       state = LOG_DATA;
       break;
