@@ -12,3 +12,5 @@
 
 - Leave the Procedure at the top of the page.  
 
+# 2026-01-16 DF
+Installed temporary actuator and created test aparatus gantry. Will fill garbage bucket wiht water and test floating capability.
