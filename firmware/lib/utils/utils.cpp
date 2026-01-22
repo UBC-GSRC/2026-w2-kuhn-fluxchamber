@@ -3,11 +3,11 @@
 #define CLOCK_INTTERUPT_PIN 1
 
 
-int chipSelectSD = 0;
+int chipSelectSD = 2;
 char logFilename[64] = "datalog.txt";
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 RTC_DS3231 rtc;
-int CLOCK_INTERRUPT_PIN = 1;
+int CLOCK_INTERRUPT_PIN = 3;
 
 void SD_init() {
     SD.begin(chipSelectSD);
@@ -21,25 +21,42 @@ Adafruit_SHT4x SHT45_init() {
     return sht4;
 }
 
-void log_data(const char* data[], size_t count, const char* filename)
-{
-    File dataFile = SD.open(filename, FILE_WRITE);
-    if (!dataFile) {
-        Serial.println("Failed to open file for writing");
-        return;
-    }
+// void log_data(const char* data[], size_t count, const char* filename)
+// {
+//     File dataFile = SD.open(filename, FILE_WRITE);
+//     if (!dataFile) {
+//         Serial.println("Failed to open file for writing");
+//         return;
+//     }
 
-    for (size_t i = 0; i < count; ++i) {
-        dataFile.print(data[i]);
-        if (i < count - 1) {
-            dataFile.print(",");
-        }
-    }
-    dataFile.println();
+//     for (size_t i = 0; i < count; ++i) {
+//         dataFile.print(data[i]);
+//         if (i < count - 1) {
+//             dataFile.print(",");
+//         }
+//     }
+//     dataFile.println();
 
-    dataFile.close();
+//     dataFile.close();
+// }
+
+void log_data(const SensorData& d, const char* filename) {
+  File f = SD.open(filename, FILE_WRITE);
+  if (!f) {
+    Serial.println("Failed to open file");
+    return;
+  }
+
+  f.print(d.date); f.print(',');
+  f.print(d.time); f.print(',');
+  f.print(d.co2);  f.print(',');
+  f.print(d.temp); f.print(',');
+  f.print(d.rh);   f.print(',');
+  f.print(d.ch4);
+  f.println();
+
+  f.close();
 }
-
 
 void rtc_init(bool setTime) {
     if (! rtc.begin()) {

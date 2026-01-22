@@ -11,39 +11,36 @@ enum State {
   ACCUMULATE_GAS,   // Let gas accumulate in chamber before measurement
   READ_DATA,        // Read data from sensor(s)
   LOG_DATA,         // Log data to SD card
-  SERIAL_LISTEN,    // Listen for serial commands
+  LORA_RECEIVE,     // Listen for serial commands
   SLEEP,            // Enter low-power sleep mode
   FAKE_SLEEP,       // Fake sleep for testing
-  TRANSMIT_STATUS,  // Transmit status over communication module
+  LORA_TRANSMIT,    // Transmit status over communication module
+  SERIAL_RECEIVE,   // Listen for serial commands
+  CALIBRATE,        // Calibrate sensors
   ERROR             // Handle errors
 };
 
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
-State state = INIT;
+// State state = INIT;
+State state = CALIBRATE;
+
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
 const unsigned long FLUSH_DURATION = 3 * 1000; // 10 seconds
 const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 10 seconds
-
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
-
-const char* row_data[5]; // Persistent array
+// const char* row_data[5]; // Persistent array
+SensorData data;
 bool shouldSleep = false;
 
-// For CO2 sensor data reading
-char co2Buf[16];
-char tempBuf[16];
-char rhBuf[16];
-char rtcDate[16];
-char rtcTime[16];
 
-unsigned wakeupPin = 1; // Pin to wake up from sleep
+unsigned wakeupPin = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
 
 void wakeupCallback() {
   // This function will be called once on device wakeup
-  state = SERIAL_LISTEN;
+  state = LORA_RECEIVE;
 }
 
 void turnOnFan(int duration_ms) {
@@ -52,9 +49,20 @@ void turnOnFan(int duration_ms) {
     digitalWrite(PIN_FAN, LOW);
 }
 
+SensorData readData(){
+  SensorData data;
+  K33Reading k33Data = k33.getReadings();
+  rtc_get_time(1, data.date, sizeof(data.date));
+  rtc_get_time(2, data.time, sizeof(data.time));
+  snprintf(data.co2, sizeof(data.co2), "%.1f", k33Data.co2);
+  snprintf(data.temp, sizeof(data.temp), "%.1f", k33Data.temp);
+  snprintf(data.rh, sizeof(data.rh), "%.1f", k33Data.rh);
+  snprintf(data.ch4, sizeof(data.ch4), "%.1f", 0.0); // Placeholder for methane voltage
+  return data;
+}
+
 void setup() {
     Serial.begin(9600);
-
     Serial.println("SD Initializing...");
     if (!SD.begin(chipSelectSD)) {
     }
@@ -73,7 +81,7 @@ void setup() {
     }
 
     Serial.println("SD initialization done.");
-    rtc_init(true);
+    rtc_init(false); // false = do not set time
     Wire.begin();
     methaneSensor.begin();
 
@@ -86,15 +94,22 @@ void setup() {
 
 void loop() {
   switch (state) {
+
     case INIT:{
-      // Initialization code here
-      Serial.println("In INIT");
+      // Initialization 
+      if (Serial){
+          Serial.println("INIT");
+      }
       state = FLUSH_CHAMBER;
       break;
     }
+
     case FLUSH_CHAMBER:{
+      // Flush the chamber to reach equilibrium with ambient air
       if (stateStartMillis == 0) {
-        Serial.println("In FLUSH_CHAMBER");
+        if (Serial){
+          Serial.println("FLUSH_CHAMBER");
+        }
         stateStartMillis = millis();
         // TODO: start flushing logic
         turnOnFan(FLUSH_DURATION);
@@ -105,9 +120,13 @@ void loop() {
       }
       break;
     }
+
     case ACCUMULATE_GAS:{
+      // Let gas accumulate in chamber through diffusive flux 
       if (stateStartMillis == 0) {
-        Serial.println("In ACCUMULATE_GAS");
+        if (Serial){
+          Serial.println("ACCUMULATE_GAS");
+        }
         stateStartMillis = millis();
       }
       else if (millis() - stateStartMillis >= ACCUMULATE_DURATION) { // Accumulate for 10 seconds
@@ -116,59 +135,68 @@ void loop() {
       }
       break;
     }
+
     case READ_DATA: {
-      Serial.println("In READ_DATA");
-      K33Reading data = k33.getReadings(); // Read sensors
-      // float methane_voltage = methaneSensor.readVoltage();
+      // Read data from sensors 
+      if (Serial){
+          Serial.println("READ_DATA");
+      }
 
-      rtc_get_time(1, rtcDate, sizeof(rtcDate));
-      rtc_get_time(2, rtcTime, sizeof(rtcTime));
+      data = readData();
 
-      snprintf(co2Buf, sizeof(co2Buf), "%.1f", data.co2);
-      snprintf(tempBuf, sizeof(tempBuf), "%.1f", data.temp);
-      snprintf(rhBuf, sizeof(rhBuf), "%.1f", data.rh);
-
-      // Store in persistent row array
-      row_data[0] = rtcDate;
-      row_data[1] = rtcTime;
-      row_data[2] = co2Buf;
-      row_data[3] = tempBuf;
-      row_data[4] = rhBuf;
-
-      Serial.print("Date: "); Serial.print(rtcDate);
-      Serial.print(" Time: "); Serial.print(rtcTime);
-      Serial.print(" CO2 (ppm): "); Serial.print(co2Buf);
-      Serial.print(" Temp (C): "); Serial.print(tempBuf);
-      Serial.print(" RH (%): "); Serial.print(rhBuf);
-      // Serial.print(" Methane (V): "); Serial.println(methane_voltage);
+      if (Serial) {
+        Serial.print("Date: "); Serial.print(data.date);
+        Serial.print(" Time: "); Serial.print(data.time);
+        Serial.print(" CO2 (ppm): "); Serial.print(data.co2);
+        Serial.print(" Temp (C): "); Serial.print(data.temp);
+        Serial.print(" RH (%): "); Serial.print(data.rh);
+        Serial.print(" CH4 (V): "); Serial.print(data.ch4);
+      }
 
       state = LOG_DATA;
       break;
     }
+
     case LOG_DATA: {
-      Serial.println("In LOG_DATA");
-      log_data(row_data, 5, datalogFile); 
-      state = SERIAL_LISTEN;
+      // Log data to SD card
+      if (Serial){
+          Serial.println("LOG_DATA");
+      }
+
+      log_data(data, datalogFile); 
+      state = LORA_RECEIVE;
       break;
     }
-    case SERIAL_LISTEN:{
-      // Code to listen for serial commands
-      Serial.println("In SERIAL_LISTEN");
+
+    case LORA_RECEIVE:{
+      // Listen for incoming LORA packets which match a known format
+      if (Serial){
+          Serial.println("LORA_RECEIVE");
+      }
       state = FAKE_SLEEP;
 
       break;
     }
+
     case SLEEP:{
-      Serial.println("In SLEEP");
+      // Enter low-power sleep mode 
+      if (Serial){
+          Serial.println("SLEEP");
+      } 
+
       rtc.setAlarm1(rtc.now() + TimeSpan(3), DS3231_A1_Second); // Wake up after 10 seconds
       LowPower.sleep(2000); // Gets out of sleep mode from interrupt
       state = INIT;
       break;
     }
+
     case FAKE_SLEEP:{
+      // Fake sleep for testing purposes
       if (stateStartMillis == 0) {
-        Serial.println("In FAKE_SLEEP");
         stateStartMillis = millis();
+        if (Serial){
+          Serial.println("FAKE_SLEEP");
+        } 
         // TODO: start flushing logic
       }
       else if (millis() - stateStartMillis >= FAKE_SLEEP_DURATION) { // Flush for 10 seconds
@@ -178,17 +206,55 @@ void loop() {
       }
       break;
     }
-    case TRANSMIT_STATUS:{
-      // Code to transmit status
-      Serial.println("In TRANSMIT_STATUS");
+
+    case LORA_TRANSMIT:{
+      // Transmit information over LORA
+        if (Serial){
+          Serial.println("LORA_TRANSMIT");
+        } 
+      break;
+    }
+
+    case SERIAL_RECEIVE:{
+      // Listen for serial commands 
+      if (stateStartMillis == 0) {
+        stateStartMillis = millis();
+
+        if (Serial){
+          Serial.println("SERIAL_RECEIVE");
+        } 
+      }
+      else if (millis() - stateStartMillis >= 5000) { // Wait for 5 seconds
+        state = SLEEP;
+        stateStartMillis = 0;
+      }
+      Serial.begin(9600);
+      
+      break;
+    }
+    case CALIBRATE:{
+      // Calibrate sensors. Print sensor readings to Serial for comparison with licor 
+      if (!Serial){
+          Serial.begin(9600);
+          Serial.println("CALIBRATE");
+      }
+
+      data = readData();
+      Serial.print("Date: "); Serial.print(data.date);
+      Serial.print(" Time: "); Serial.print(data.time);
+      Serial.print(" CO2 (ppm): "); Serial.print(data.co2);
+      Serial.print(" Temp (C): "); Serial.print(data.temp);
+      Serial.print(" RH (%): "); Serial.print(data.rh);
+      Serial.print(" CH4 (V): "); Serial.print(data.ch4);
+      Serial.println();
+
+      delay(15000); // Wait 15 seconds between readings
       break;
     }
     case ERROR:{
       // Error handling code
-      Serial.println("In ERROR");
       break;
     }
   }
-	// delay(60000 * 5); // Log every 5 minutes
 }
 

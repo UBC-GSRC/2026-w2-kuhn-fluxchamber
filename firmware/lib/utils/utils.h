@@ -12,8 +12,20 @@
 extern int chipSelectSD; // SD card chip select pin for SPI
 extern char logFilename[64]; 
 void SD_init();
-void log_data(const char* data[], size_t count,
-              const char* filename);
+// void log_data(const char* data[], size_t count,
+//               const char* filename);
+
+// For CO2 sensor data reading
+struct SensorData {
+  char date[16];
+  char time[16];
+  char temp[16];
+  char rh[16];
+  char co2[16];
+  char ch4[16];
+};
+void log_data(const SensorData& d, const char* filename);
+
 
 // RTC 
 extern char daysOfTheWeek[7][12];
