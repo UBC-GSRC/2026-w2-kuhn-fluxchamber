@@ -4,6 +4,7 @@
 #include "utils.h"
 #include <Co2Meter_K33.h>
 #include "ArduinoLowPower.h"
+#include "SerialCommands.h"
 
 enum State {
   INIT,             // Initialize the system
@@ -30,13 +31,13 @@ unsigned long stateStartMillis = 0;
 const unsigned long FLUSH_DURATION = 3 * 1000; // 10 seconds
 const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 10 seconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
-// const char* row_data[5]; // Persistent array
 SensorData data;
 bool shouldSleep = false;
 
 
-unsigned wakeupPin = 3; // Pin to wake up from sleep
+unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
+unsigned PIN_SWITCH = 4;
 
 void wakeupCallback() {
   // This function will be called once on device wakeup
@@ -85,10 +86,11 @@ void setup() {
     Wire.begin();
     methaneSensor.begin();
 
-    pinMode(wakeupPin, INPUT_PULLUP);
+    pinMode(PIN_WAKEUP, INPUT_PULLUP);
     pinMode(PIN_FAN, OUTPUT);
+    pinMode(PIN_SWITCH, INPUT_PULLUP);
 
-    LowPower.attachInterruptWakeup(wakeupPin, wakeupCallback, CHANGE);
+    LowPower.attachInterruptWakeup(PIN_WAKEUP, wakeupCallback, CHANGE);
 }
 
 
@@ -248,7 +250,22 @@ void loop() {
       Serial.print(" CH4 (V): "); Serial.print(data.ch4);
       Serial.println();
 
-      delay(15000); // Wait 15 seconds between readings
+      turnOnFan(3000); // Turn on fan for 3 seconds 
+
+      if (digitalRead(PIN_SWITCH) == LOW){
+        // state = CALIBRATE; // Stay in calibration mode
+        delay(500);
+        Serial.println("Switch is low");
+
+        checkSerial();
+      } else {
+        // state = INIT; // Move to logging mode
+        delay(500);
+        Serial.println("Switch is high");
+        Serial.end();
+        state = INIT;
+      }
+      delay(15000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
       break;
     }
     case ERROR:{
