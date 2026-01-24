@@ -685,6 +685,142 @@
 			)
 			(embedded_fonts no)
 		)
+		(symbol "Switch:SW_SPST"
+			(pin_names
+				(offset 0)
+				(hide yes)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "SW"
+				(at 0 3.175 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "SW_SPST"
+				(at 0 -2.54 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Datasheet" "~"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "Description" "Single Pole Single Throw (SPST) switch"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(property "ki_keywords" "switch lever"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(hide yes)
+				)
+			)
+			(symbol "SW_SPST_0_0"
+				(circle
+					(center -2.032 0)
+					(radius 0.508)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.524 0.254) (xy 1.524 1.778)
+					)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(circle
+					(center 2.032 0)
+					(radius 0.508)
+					(stroke
+						(width 0)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "SW_SPST_1_1"
+				(pin passive line
+					(at -5.08 0 0)
+					(length 2.54)
+					(name "A"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 180)
+					(length 2.54)
+					(name "B"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
 		(symbol "new_library:16-bit_ADC_Soldered"
 			(exclude_from_sim no)
 			(in_bom yes)
@@ -3224,7 +3360,7 @@
 		)
 		(uuid "3744e75f-0e5e-442b-9abb-82c3d9f26bb6")
 	)
-	(text "Pump 1"
+	(text "Linear Actuator\n"
 		(exclude_from_sim no)
 		(at 60.452 94.996 0)
 		(effects
@@ -3279,7 +3415,7 @@
 		)
 		(uuid "83dc4942-0894-493c-9218-4c92f685a712")
 	)
-	(text "Switching Regulator 2 (5V)\n"
+	(text "Switching Regulator 2 (5.6V)\n"
 		(exclude_from_sim no)
 		(at 101.092 84.836 0)
 		(effects
@@ -3410,15 +3546,15 @@
 		)
 		(uuid "c4395e56-eb80-48f8-bc23-20d54b067a1d")
 	)
-	(text "Pump 2"
+	(text "Start Logging Control"
 		(exclude_from_sim no)
-		(at 60.96 117.856 0)
+		(at 93.472 150.368 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
 		)
-		(uuid "c9caf80c-856d-47b0-86be-88b8e2b75dd8")
+		(uuid "ca362656-1823-4672-8a64-00f816b0a20f")
 	)
 	(text "Flux Chamber Data Logger"
 		(exclude_from_sim no)
@@ -3442,6 +3578,16 @@
 	)
 	(wire
 		(pts
+			(xy 88.9 162.56) (xy 85.09 162.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "47d3d66b-8403-452f-a4b3-dc2b71dfcd28")
+	)
+	(wire
+		(pts
 			(xy 21.59 69.85) (xy 24.13 69.85)
 		)
 		(stroke
@@ -3449,6 +3595,16 @@
 			(type default)
 		)
 		(uuid "7d5596a1-2f1c-452a-a990-8b67ed77c91e")
+	)
+	(wire
+		(pts
+			(xy 101.6 162.56) (xy 99.06 162.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c58442f9-8f98-4f90-a5c9-6b49eb9b92ea")
 	)
 	(label "V_bat"
 		(at 52.07 168.91 0)
@@ -3490,16 +3646,6 @@
 		)
 		(uuid "1e167640-03c8-47e9-9ab8-9f8e8182909e")
 	)
-	(label "motor+"
-		(at 54.61 129.54 180)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "21ea5ee3-8555-4e78-a812-00253b095623")
-	)
 	(label "SDA"
 		(at 24.13 95.25 180)
 		(effects
@@ -3520,6 +3666,16 @@
 		)
 		(uuid "2e07ca63-5b40-438e-b401-353658708954")
 	)
+	(label "D7"
+		(at 25.4 176.53 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "314fc4e2-e290-4479-a24e-2076f4b52ef0")
+	)
 	(label "MISO"
 		(at 226.06 64.77 0)
 		(effects
@@ -3530,15 +3686,15 @@
 		)
 		(uuid "3a195989-1810-41fe-a855-d3e0e17bf802")
 	)
-	(label "D2"
-		(at 25.4 176.53 180)
+	(label "D4"
+		(at 226.06 85.09 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
-		(uuid "46329b93-7f08-4941-8e05-465bdeffc7ee")
+		(uuid "517fa21b-87bc-490f-bd34-e197599e2b81")
 	)
 	(label "motor-"
 		(at 25.4 172.72 180)
@@ -3600,16 +3756,6 @@
 		)
 		(uuid "64900b30-d988-4e08-a5c3-9a4bd76ac90b")
 	)
-	(label "motor-"
-		(at 67.31 129.54 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "664d8b1f-8d63-48d6-8cd2-4dea41376b4d")
-	)
 	(label "SCL"
 		(at 24.13 99.06 180)
 		(effects
@@ -3639,6 +3785,16 @@
 			(justify right bottom)
 		)
 		(uuid "726be468-19a8-4023-a6ba-226d0d5e2d12")
+	)
+	(label "LED_BUILTIN"
+		(at 226.06 67.31 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "78f01e78-80b1-4bb6-849d-6fe103502338")
 	)
 	(label "V_bat"
 		(at 91.44 101.6 180)
@@ -3732,7 +3888,17 @@
 		)
 		(uuid "9e4d0df3-3870-405b-b72f-122fd586fce1")
 	)
-	(label "D0"
+	(label "D7"
+		(at 226.06 69.85 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "a3dda3f7-a125-49b9-b92c-6ed5878e9091")
+	)
+	(label "D2"
 		(at 198.12 135.89 180)
 		(effects
 			(font
@@ -3762,7 +3928,7 @@
 		)
 		(uuid "b1229fc1-93ef-490c-b1f9-ed440ced531b")
 	)
-	(label "D1"
+	(label "D3"
 		(at 160.02 144.78 180)
 		(effects
 			(font
@@ -3801,6 +3967,16 @@
 			(justify left bottom)
 		)
 		(uuid "c0873e91-edec-4a97-a51a-0f516c378f24")
+	)
+	(label "D4"
+		(at 85.09 162.56 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "c9705fd0-679b-433d-8271-6dfd58ab09dc")
 	)
 	(label "V_bat"
 		(at 91.44 77.47 180)
@@ -3861,6 +4037,16 @@
 			(justify right bottom)
 		)
 		(uuid "fc29775c-48b3-451e-b5b4-20a41a58e379")
+	)
+	(label "D3"
+		(at 160.02 92.71 180)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "fe30ed6a-4272-45be-9015-55bcb55e715e")
 	)
 	(symbol
 		(lib_id "new_library:SD_breakout")
@@ -3939,6 +4125,74 @@
 			(project ""
 				(path "/6e8062db-1165-40d3-b0a8-95f723efc855"
 					(reference "SD1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Switch:SW_SPST")
+		(at 93.98 162.56 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "13be6d6c-247d-40cd-b7f5-7322ea8bf035")
+		(property "Reference" "SW1"
+			(at 93.98 156.21 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "SW_SPST"
+			(at 93.98 158.75 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 93.98 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 93.98 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Single Pole Single Throw (SPST) switch"
+			(at 93.98 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "2"
+			(uuid "18abbccd-2937-42de-ac24-f8555e744830")
+		)
+		(pin "1"
+			(uuid "0820e957-ec18-49e6-be86-3f9d4ea26987")
+		)
+		(instances
+			(project ""
+				(path "/6e8062db-1165-40d3-b0a8-95f723efc855"
+					(reference "SW1")
 					(unit 1)
 				)
 			)
@@ -4177,75 +4431,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Motor:Motor_DC")
-		(at 59.69 129.54 90)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "5255317d-aa27-4c6c-abba-8758fc09d3f1")
-		(property "Reference" "M4"
-			(at 59.436 121.666 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "Motor_DC"
-			(at 65.532 124.46 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 61.976 129.54 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 61.976 129.54 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "DC Motor"
-			(at 59.69 129.54 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "3defafcd-b912-4662-8ca8-7bfc9862b7f7")
-		)
-		(pin "2"
-			(uuid "9e93426d-fced-4de6-b292-27298678cfd7")
-		)
-		(instances
-			(project ""
-				(path "/6e8062db-1165-40d3-b0a8-95f723efc855"
-					(reference "M4")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 198.12 146.05 270)
 		(unit 1)
@@ -4367,10 +4552,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "3defafcd-b912-4662-8ca8-7bfc9862b7f7")
+			(uuid "3defafcd-b912-4662-8ca8-7bfc9862b7f8")
 		)
 		(pin "2"
-			(uuid "9e93426d-fced-4de6-b292-27298678cfd7")
+			(uuid "9e93426d-fced-4de6-b292-27298678cfd8")
 		)
 		(instances
 			(project ""
@@ -4521,21 +4706,86 @@
 			)
 		)
 		(pin ""
-			(uuid "9c43ed3c-a944-4496-87a2-f0100f4328b7")
+			(uuid "9c43ed3c-a944-4496-87a2-f0100f4328b8")
 		)
 		(pin ""
-			(uuid "3f1c8151-9dc9-4ba8-95cb-c1ecd555e882")
+			(uuid "3f1c8151-9dc9-4ba8-95cb-c1ecd555e883")
 		)
 		(pin ""
-			(uuid "a95517a2-15da-45ac-9328-50a42f8ac478")
+			(uuid "a95517a2-15da-45ac-9328-50a42f8ac479")
 		)
 		(pin ""
-			(uuid "c90b7cee-b24b-4bab-a4de-de469e74d8db")
+			(uuid "c90b7cee-b24b-4bab-a4de-de469e74d8dc")
 		)
 		(instances
 			(project ""
 				(path "/6e8062db-1165-40d3-b0a8-95f723efc855"
 					(reference "D2_3V3")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND1")
+		(at 101.6 162.56 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "a5790ce6-3f47-4432-9117-0e466926124e")
+		(property "Reference" "#PWR07"
+			(at 107.95 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "GND1"
+			(at 108.204 161.544 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 101.6 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 101.6 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND1\" , ground"
+			(at 101.6 162.56 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "6fa066ca-fc41-4593-95eb-c464eac7dc42")
+		)
+		(instances
+			(project ""
+				(path "/6e8062db-1165-40d3-b0a8-95f723efc855"
+					(reference "#PWR07")
 					(unit 1)
 				)
 			)
@@ -4818,16 +5068,16 @@
 			)
 		)
 		(pin ""
-			(uuid "9c43ed3c-a944-4496-87a2-f0100f4328b7")
+			(uuid "9c43ed3c-a944-4496-87a2-f0100f4328b9")
 		)
 		(pin ""
-			(uuid "3f1c8151-9dc9-4ba8-95cb-c1ecd555e882")
+			(uuid "3f1c8151-9dc9-4ba8-95cb-c1ecd555e884")
 		)
 		(pin ""
-			(uuid "a95517a2-15da-45ac-9328-50a42f8ac478")
+			(uuid "a95517a2-15da-45ac-9328-50a42f8ac47a")
 		)
 		(pin ""
-			(uuid "c90b7cee-b24b-4bab-a4de-de469e74d8db")
+			(uuid "c90b7cee-b24b-4bab-a4de-de469e74d8dd")
 		)
 		(instances
 			(project ""
@@ -5530,10 +5780,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "3defafcd-b912-4662-8ca8-7bfc9862b7f7")
+			(uuid "3defafcd-b912-4662-8ca8-7bfc9862b7f9")
 		)
 		(pin "2"
-			(uuid "9e93426d-fced-4de6-b292-27298678cfd7")
+			(uuid "9e93426d-fced-4de6-b292-27298678cfd9")
 		)
 		(instances
 			(project ""
