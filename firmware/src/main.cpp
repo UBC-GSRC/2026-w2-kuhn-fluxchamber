@@ -5,6 +5,7 @@
 #include <Co2Meter_K33.h>
 #include "ArduinoLowPower.h"
 #include "SerialCommands.h"
+#include <LoRa.h>
 
 enum State {
   INIT,             // Initialize the system
@@ -24,7 +25,8 @@ enum State {
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
 // State state = INIT;
-State state = CALIBRATE;
+// State state = CALIBRATE;
+State state = LORA_TRANSMIT;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
@@ -38,6 +40,8 @@ bool shouldSleep = false;
 unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
 unsigned PIN_SWITCH = 4;
+unsigned localAddress = 0xBB; // LoRa local address
+unsigned destinationAddress = 0xFF; // LoRa destination address
 
 void wakeupCallback() {
   // This function will be called once on device wakeup
@@ -91,8 +95,17 @@ void setup() {
     pinMode(PIN_SWITCH, INPUT_PULLUP);
 
     LowPower.attachInterruptWakeup(PIN_WAKEUP, wakeupCallback, CHANGE);
-}
 
+    if (!LoRa.begin(915E6)) {
+    while (1){
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(100);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(100);
+      }
+    }
+    delay(1000);
+}
 
 void loop() {
   switch (state) {
@@ -214,6 +227,16 @@ void loop() {
         if (Serial){
           Serial.println("LORA_TRANSMIT");
         } 
+
+      char t[16];
+      rtc_get_time(2, t, sizeof(t));
+      LoRa.beginPacket();
+      LoRa.write(destinationAddress);
+      LoRa.write(localAddress);
+      LoRa.print(t);
+      LoRa.endPacket();
+
+      delay(5000);
       break;
     }
 
