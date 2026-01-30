@@ -11,6 +11,11 @@
 - Do not delete entries, this is meant to serve as a rudimentary version control and archive.  
 
 - Leave the Procedure at the top of the page.  
+
+## 2026-01-29 AF
+
+Did some INA226 testing and it seems that it's better to just get a more expensive module that can read higher amperage. Such as INA228 which can read up to 10A. This means we can get way more accurate energy consumption compared to the modelling method I proposed before. I cleaned up some schematics and tested the INA226 as well. 
+
 ## 2026-01-26 AF
 
 I added some redesigns to the DIN clips. They are now in one configurable file. I made them less thick at the through holes, a little less tall, and some other things that I forget. 
