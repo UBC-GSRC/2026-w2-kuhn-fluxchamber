@@ -13,9 +13,9 @@ enum State {
   ACCUMULATE_GAS,   // Let gas accumulate in chamber before measurement
   READ_DATA,        // Read data from sensor(s)
   LOG_DATA,         // Log data to SD card
-  LORA_RECEIVE,     // Listen for serial commands
   SLEEP,            // Enter low-power sleep mode
   FAKE_SLEEP,       // Fake sleep for testing
+  LORA_RECEIVE,     // Listen for serial commands
   LORA_TRANSMIT,    // Transmit status over communication module
   SERIAL_RECEIVE,   // Listen for serial commands
   CALIBRATE,        // Calibrate sensors
@@ -40,6 +40,7 @@ bool shouldSleep = false;
 unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
 unsigned PIN_SWITCH = 4;
+unsigned PIN_REED_SWITCH = 5; // Pin for reed switch
 unsigned localAddress = 0xBB; // LoRa local address
 unsigned destinationAddress = 0xFF; // LoRa destination address
 
@@ -93,6 +94,7 @@ void setup() {
     pinMode(PIN_WAKEUP, INPUT_PULLUP);
     pinMode(PIN_FAN, OUTPUT);
     pinMode(PIN_SWITCH, INPUT_PULLUP);
+    pinMode(PIN_REED_SWITCH, INPUT_PULLUP);
 
     LowPower.attachInterruptWakeup(PIN_WAKEUP, wakeupCallback, CHANGE);
 
@@ -228,6 +230,15 @@ void loop() {
           Serial.println("LORA_TRANSMIT");
         } 
 
+        if (digitalRead(PIN_REED_SWITCH) == LOW){
+          digitalWrite(LED_BUILTIN, HIGH);
+          delay(500);
+          digitalWrite(LED_BUILTIN, LOW);
+          delay(500);
+          digitalWrite(LED_BUILTIN, HIGH);
+          delay(500);
+          digitalWrite(LED_BUILTIN, LOW);
+        }
       char t[16];
       rtc_get_time(2, t, sizeof(t));
       LoRa.beginPacket();
