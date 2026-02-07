@@ -38,8 +38,8 @@
         "other_text_upright": false,
         "pads": {
           "drill": 0.8,
-          "height": 1.27,
-          "width": 2.54
+          "height": 1.7272,
+          "width": 1.7272
         },
         "silk_line_width": 0.1,
         "silk_text_italic": false,
@@ -430,7 +430,7 @@
       "no_connect_dangling": "warning",
       "pin_not_connected": "error",
       "pin_not_driven": "error",
-      "pin_to_pin": "error",
+      "pin_to_pin": "warning",
       "power_pin_not_driven": "error",
       "same_local_global_label": "warning",
       "similar_label_and_power": "warning",
@@ -451,7 +451,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "data_logger.kicad_pro",
+    "filename": "logger_hat.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -611,7 +611,7 @@
   },
   "sheets": [
     [
-      "6e8062db-1165-40d3-b0a8-95f723efc855",
+      "1dd6787f-98d3-42eb-9429-8fb9cbc118b6",
       "Root"
     ]
   ],
