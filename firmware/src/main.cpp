@@ -25,8 +25,8 @@ enum State {
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
 // State state = INIT;
-// State state = CALIBRATE;
-State state = LORA_TRANSMIT;
+State state = CALIBRATE;
+// State state = LORA_TRANSMIT;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
@@ -284,7 +284,8 @@ void loop() {
       Serial.print(" CH4 (V): "); Serial.print(data.ch4);
       Serial.println();
 
-      turnOnFan(3000); // Turn on fan for 3 seconds 
+      // turnOnFan(3000); // Turn on fan for 3 seconds 
+      turnOnFan(10000); // Turn on fan for 10 seconds 
 
       if (digitalRead(PIN_SWITCH) == LOW){
         // state = CALIBRATE; // Stay in calibration mode
@@ -299,7 +300,8 @@ void loop() {
         Serial.end();
         state = INIT;
       }
-      delay(15000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
+      // delay(15000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
+      delay(5000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
       break;
     }
     case ERROR:{

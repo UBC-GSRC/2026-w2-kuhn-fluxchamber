@@ -30,11 +30,7 @@ void setup() {
   rtc_init(true);
 
   Wire.begin();
-
   
-	std::vector<const char*> row = { "Date", "Time", "CO2_ppm", "Temp_C", "RH_%" };
-
-	log_data(row, datalogFile);
 }
 
 void loop() {

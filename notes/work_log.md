@@ -12,6 +12,17 @@
 
 - Leave the Procedure at the top of the page.  
 
+## 2026-01-06 AF
+
+Watched some videos about using KiCAD9 and it was super helpful. Mostly just showing me the hidden things about using the software and the quality of life boosts. The more and more I learn about PCB design really freaks me out about making something that doesn't work. I feel like modularizing items benefits this. Arduino has done a great job at mastering this idea. I just kinda hate paying the huge premium to use their MCU hats. But I think I need to stop worrying about making only one PCB. Make a few. Ideally we minimize the amount of flywires in the system. But we benefit from modularizing as we don't need to worry about the complexity of PCB design when you start having mixed signals and all the sorts. Maybe it does get included with MCU hats but it feels better to me for some reason. 
+
+I need to find a good video that explains ground currents better. I can't visualize it in the context of PCB's and nets of connections.
+
+Additionally I think I should try to switch the K33 data transfer to UART as it is better designed for further cable length. 
+
+## 2026-01-05 AF
+Working mostly on putting this PCB together. I'm learning more about routing, using via's correctly, ground planes, etc. I wasn't convinced that I wanted to put the LM2596's on the board but I figure why not. This is just going to take some cute routing to make it work but that's fine. Just make sure that sensitive signals aren't via'd if possible. 
+
 ## 2026-01-29 AF
 
 Did some INA226 testing and it seems that it's better to just get a more expensive module that can read higher amperage. Such as INA228 which can read up to 10A. This means we can get way more accurate energy consumption compared to the modelling method I proposed before. I cleaned up some schematics and tested the INA226 as well. 
