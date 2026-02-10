@@ -12,6 +12,10 @@
 
 - Leave the Procedure at the top of the page.  
 
+## 2026-01-10 AF
+
+I changed some of the logic to make sure that the ISR's work correctly for the reed switch. Basically, you can't be in a delay() and have an ISR work. So everything that takes a while was convereted to be a non-blocking wait using millis().
+
 ## 2026-01-06 AF
 
 Watched some videos about using KiCAD9 and it was super helpful. Mostly just showing me the hidden things about using the software and the quality of life boosts. The more and more I learn about PCB design really freaks me out about making something that doesn't work. I feel like modularizing items benefits this. Arduino has done a great job at mastering this idea. I just kinda hate paying the huge premium to use their MCU hats. But I think I need to stop worrying about making only one PCB. Make a few. Ideally we minimize the amount of flywires in the system. But we benefit from modularizing as we don't need to worry about the complexity of PCB design when you start having mixed signals and all the sorts. Maybe it does get included with MCU hats but it feels better to me for some reason. 
