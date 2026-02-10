@@ -18,20 +18,26 @@ enum State {
   LORA_RECEIVE,     // Listen for serial commands
   LORA_TRANSMIT,    // Transmit status over communication module
   SERIAL_RECEIVE,   // Listen for serial commands
+  BLINK,            // Blink LED for testing
   CALIBRATE,        // Calibrate sensors
+  TEST_BLINK_DELAY, // Test blinking with delay (blocking)
+  TEST_BLINK_MILLIS, // Test blinking with millis (non-blocking)
   ERROR             // Handle errors
 };
 
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
 // State state = INIT;
+State statePrev;
 State state = CALIBRATE;
+// volatile State state = BLINK;
 // State state = LORA_TRANSMIT;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
 const unsigned long FLUSH_DURATION = 3 * 1000; // 10 seconds
-const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 10 seconds
+const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 3 seconds
+const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; // 25 seconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
 SensorData data;
 bool shouldSleep = false;
@@ -50,13 +56,18 @@ void wakeupCallback() {
 }
 
 void turnOnFan(int duration_ms) {
-    digitalWrite(PIN_FAN, HIGH);
-    delay(duration_ms);
-    digitalWrite(PIN_FAN, LOW);
+  digitalWrite(PIN_FAN, HIGH);
+  delay(duration_ms);
+  digitalWrite(PIN_FAN, LOW);
+}
+
+void reedSwitchCallback(){
+  // Change this to start a full read sequence instead of just blinking
+  state = BLINK;
 }
 
 SensorData readData(){
-  SensorData data;
+  // SensorData data;
   K33Reading k33Data = k33.getReadings();
   rtc_get_time(1, data.date, sizeof(data.date));
   rtc_get_time(2, data.time, sizeof(data.time));
@@ -97,6 +108,8 @@ void setup() {
     pinMode(PIN_REED_SWITCH, INPUT_PULLUP);
 
     LowPower.attachInterruptWakeup(PIN_WAKEUP, wakeupCallback, CHANGE);
+    LowPower.attachInterruptWakeup(PIN_REED_SWITCH, reedSwitchCallback, FALLING);
+    // attachInterrupt(digitalPinToInterrupt(PIN_REED_SWITCH), reedSwitchCallback, FALLING);
 
     if (!LoRa.begin(915E6)) {
     while (1){
@@ -128,12 +141,12 @@ void loop() {
           Serial.println("FLUSH_CHAMBER");
         }
         stateStartMillis = millis();
-        // TODO: start flushing logic
-        turnOnFan(FLUSH_DURATION);
+        digitalWrite(PIN_FAN, HIGH);
       }
       else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Flush for 10 seconds
         state = ACCUMULATE_GAS;
         stateStartMillis = 0;
+        digitalWrite(PIN_FAN, LOW);
       }
       break;
     }
@@ -155,22 +168,52 @@ void loop() {
 
     case READ_DATA: {
       // Read data from sensors 
-      if (Serial){
+      if (stateStartMillis == 0) {
+        if (Serial){
           Serial.println("READ_DATA");
+        }
+        stateStartMillis = millis();
+        k33.initPoll();
       }
+      else if (millis() - stateStartMillis >= CO2_GAS_DIFFUSION_DURATION) { // Warmup for 16 seconds
+        // wait until CO2 sensor is ready, then read data        
+        // progress in the state machine
+        rtc_get_time(1, data.date, sizeof(data.date));
+        rtc_get_time(2, data.time, sizeof(data.time));
+        snprintf(data.temp, sizeof(data.temp), "%.1f", k33.readTemp());
+        delay(20);
+        snprintf(data.rh, sizeof(data.rh), "%.1f", k33.readRh());
+        delay(20);
+        snprintf(data.co2, sizeof(data.co2), "%.1f", k33.readCo2());
+        delay(20);
+        // snprintf(data.ch4, sizeof(data.ch4), "%.1f", methaneSensor.voltageToPPM(methaneSensor.readVoltage()));
+        // delay(20);
+        stateStartMillis = 0;
+        
+        if (Serial) {
+          Serial.print("Date: "); Serial.print(data.date);
+          Serial.print(" Time: "); Serial.print(data.time);
+          Serial.print(" CO2 (ppm): "); Serial.print(data.co2);
+          Serial.print(" Temp (C): "); Serial.print(data.temp);
+          Serial.print(" RH (%): "); Serial.print(data.rh);
+          Serial.print(" CH4 (V): "); Serial.print(data.ch4);
+        }
 
-      data = readData();
-
-      if (Serial) {
-        Serial.print("Date: "); Serial.print(data.date);
-        Serial.print(" Time: "); Serial.print(data.time);
-        Serial.print(" CO2 (ppm): "); Serial.print(data.co2);
-        Serial.print(" Temp (C): "); Serial.print(data.temp);
-        Serial.print(" RH (%): "); Serial.print(data.rh);
-        Serial.print(" CH4 (V): "); Serial.print(data.ch4);
+        if (statePrev == CALIBRATE){
+          // If coming from calibration mode, stay in calibration mode to compare with licor readings
+          state = CALIBRATE;
+          statePrev = READ_DATA;
+        } else {
+          // Otherwise, move to logging mode
+          state = LOG_DATA;
+        }
       }
-
-      state = LOG_DATA;
+      else {
+        digitalWrite(LED_BUILTIN, HIGH); // Turn on LED while waiting for sensor to be ready
+        delay(1000);
+        digitalWrite(LED_BUILTIN, LOW); // Turn off LED after reading data
+        delay(1000);
+      }
       break;
     }
 
@@ -230,15 +273,6 @@ void loop() {
           Serial.println("LORA_TRANSMIT");
         } 
 
-        if (digitalRead(PIN_REED_SWITCH) == LOW){
-          digitalWrite(LED_BUILTIN, HIGH);
-          delay(500);
-          digitalWrite(LED_BUILTIN, LOW);
-          delay(500);
-          digitalWrite(LED_BUILTIN, HIGH);
-          delay(500);
-          digitalWrite(LED_BUILTIN, LOW);
-        }
       char t[16];
       rtc_get_time(2, t, sizeof(t));
       LoRa.beginPacket();
@@ -268,6 +302,19 @@ void loop() {
       
       break;
     }
+    case BLINK: {
+      unsigned counter = 0;
+      while (counter < 10){
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(500);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(100);
+        counter++;
+      }
+
+      state = CALIBRATE; // Return to calibration mode after blinking
+      break;
+    }
     case CALIBRATE:{
       // Calibrate sensors. Print sensor readings to Serial for comparison with licor 
       if (!Serial){
@@ -275,35 +322,70 @@ void loop() {
           Serial.println("CALIBRATE");
       }
 
-      data = readData();
-      Serial.print("Date: "); Serial.print(data.date);
-      Serial.print(" Time: "); Serial.print(data.time);
-      Serial.print(" CO2 (ppm): "); Serial.print(data.co2);
-      Serial.print(" Temp (C): "); Serial.print(data.temp);
-      Serial.print(" RH (%): "); Serial.print(data.rh);
-      Serial.print(" CH4 (V): "); Serial.print(data.ch4);
-      Serial.println();
-
-      // turnOnFan(3000); // Turn on fan for 3 seconds 
-      turnOnFan(10000); // Turn on fan for 10 seconds 
-
       if (digitalRead(PIN_SWITCH) == LOW){
         // state = CALIBRATE; // Stay in calibration mode
-        delay(500);
+        delay(100);
         Serial.println("Switch is low");
-
+        
         checkSerial();
+        stateStartMillis = 0;
+        statePrev = CALIBRATE;
+        state = READ_DATA;
       } else {
         // state = INIT; // Move to logging mode
-        delay(500);
+        delay(100);
         Serial.println("Switch is high");
         Serial.end();
+        
+        stateStartMillis = 0;
         state = INIT;
       }
       // delay(15000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
-      delay(5000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
+      // delay(5000); //    Wait 15 seconds more, CO2 sensor already has 15 second delay
       break;
     }
+  case TEST_BLINK_DELAY: {
+    Serial.println("TEST_BLINK_DELAY (blocking)");
+
+    unsigned long start = millis();
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(5000); // Keep LED on for 5 seconds
+    digitalWrite(LED_BUILTIN, LOW);
+
+    Serial.println("TEST_BLINK_DELAY done");
+    state = TEST_BLINK_DELAY;   // return where you want
+    break;
+    }
+  
+  case TEST_BLINK_MILLIS: {
+    static bool initialized = false;
+    static unsigned long start = 0;
+    static unsigned long lastToggle = 0;
+    static bool ledState = false;
+
+    if (!initialized) {
+        Serial.println("TEST_BLINK_MILLIS (non-blocking)");
+        initialized = true;
+        start = millis();
+        lastToggle = millis();
+        ledState = false;
+        digitalWrite(LED_BUILTIN, LOW);
+    }
+
+  
+    digitalWrite(LED_BUILTIN, HIGH);
+
+    // End after 5 seconds
+    if (millis() - start >= 5000) {
+        digitalWrite(LED_BUILTIN, LOW);
+        Serial.println("TEST_BLINK_MILLIS done");
+        initialized = false;
+        state = TEST_BLINK_MILLIS;   // return where you want
+    }
+
+    break;
+    }
+
     case ERROR:{
       // Error handling code
       break;
