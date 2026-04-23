@@ -133,7 +133,7 @@
         "min_track_width": 0.0,
         "min_via_annular_width": 0.1,
         "min_via_diameter": 0.5,
-        "solder_mask_to_copper_clearance": 0.0,
+        "solder_mask_to_copper_clearance": 0.005,
         "use_height_for_length_calcs": true
       },
       "teardrop_options": [
@@ -451,7 +451,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "ngm2611.kicad_pro",
+    "filename": "methane_sensor_carrier.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -611,7 +611,7 @@
   },
   "sheets": [
     [
-      "84797165-2629-4d6e-af73-b85496f7831c",
+      "a02c1f7b-47e0-4fef-8465-bd70a81ca9f5",
       "Root"
     ]
   ],
