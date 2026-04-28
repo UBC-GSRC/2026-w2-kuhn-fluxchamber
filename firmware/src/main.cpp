@@ -39,6 +39,7 @@ const unsigned long FLUSH_DURATION = 3 * 1000; // 10 seconds
 const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 3 seconds
 const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; // 25 seconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
+const unsigned long SLEEP_DURATION = 60 * 1000; // 60 seconds
 SensorData data;
 bool shouldSleep = false;
 
@@ -66,20 +67,8 @@ void reedSwitchCallback(){
   state = BLINK;
 }
 
-SensorData readData(){
-  // SensorData data;
-  K33Reading k33Data = k33.getReadings();
-  rtc_get_time(1, data.date, sizeof(data.date));
-  rtc_get_time(2, data.time, sizeof(data.time));
-  snprintf(data.co2, sizeof(data.co2), "%.1f", k33Data.co2);
-  snprintf(data.temp, sizeof(data.temp), "%.1f", k33Data.temp);
-  snprintf(data.rh, sizeof(data.rh), "%.1f", k33Data.rh);
-  snprintf(data.ch4, sizeof(data.ch4), "%.1f", 0.0); // Placeholder for methane voltage
-  return data;
-}
-
 void setup() {
-    Serial.begin(9600);
+    // Serial.begin(9600);
     Serial.println("SD Initializing...");
     if (!SD.begin(chipSelectSD)) {
     }
@@ -110,16 +99,6 @@ void setup() {
     LowPower.attachInterruptWakeup(PIN_WAKEUP, wakeupCallback, CHANGE);
     LowPower.attachInterruptWakeup(PIN_REED_SWITCH, reedSwitchCallback, FALLING);
     // attachInterrupt(digitalPinToInterrupt(PIN_REED_SWITCH), reedSwitchCallback, FALLING);
-
-    if (!LoRa.begin(915E6)) {
-    while (1){
-      digitalWrite(LED_BUILTIN, HIGH);
-      delay(100);
-      digitalWrite(LED_BUILTIN, LOW);
-      delay(100);
-      }
-    }
-    delay(1000);
 }
 
 void loop() {
@@ -135,13 +114,17 @@ void loop() {
     }
 
     case FLUSH_CHAMBER:{
-      // Flush the chamber to reach equilibrium with ambient air
+      // Flush the chamber to reach equilibrium with ambient air.
+      // 1. Open vent 
+      // 2. Turn on fan for set duration
+      // 3. Close vent
       if (stateStartMillis == 0) {
         if (Serial){
           Serial.println("FLUSH_CHAMBER");
         }
         stateStartMillis = millis();
         digitalWrite(PIN_FAN, HIGH);
+        // open vent 
       }
       else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Flush for 10 seconds
         state = ACCUMULATE_GAS;
@@ -153,6 +136,7 @@ void loop() {
 
     case ACCUMULATE_GAS:{
       // Let gas accumulate in chamber through diffusive flux 
+      // 1. Wait for set duration (sleep?) 
       if (stateStartMillis == 0) {
         if (Serial){
           Serial.println("ACCUMULATE_GAS");
@@ -168,6 +152,7 @@ void loop() {
 
     case READ_DATA: {
       // Read data from sensors 
+      // 1. Read timestamp from RTC, temperature, humidity, CO2 and methane voltage from sensors
       if (stateStartMillis == 0) {
         if (Serial){
           Serial.println("READ_DATA");
@@ -186,8 +171,8 @@ void loop() {
         delay(20);
         snprintf(data.co2, sizeof(data.co2), "%.1f", k33.readCo2());
         delay(20);
-        // snprintf(data.ch4, sizeof(data.ch4), "%.1f", methaneSensor.voltageToPPM(methaneSensor.readVoltage()));
-        // delay(20);
+        snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
+        delay(20);
         stateStartMillis = 0;
         
         if (Serial) {
@@ -230,23 +215,26 @@ void loop() {
 
     case LORA_RECEIVE:{
       // Listen for incoming LORA packets which match a known format
+      // Listen for a set duration 
       if (Serial){
           Serial.println("LORA_RECEIVE");
       }
-      state = FAKE_SLEEP;
+      state = SLEEP;
 
       break;
     }
 
     case SLEEP:{
       // Enter low-power sleep mode 
+      // 1. Set an alarm on the RTC to wake up after set duration
+      // 2. Enter sleep mode 
       if (Serial){
           Serial.println("SLEEP");
       } 
 
-      rtc.setAlarm1(rtc.now() + TimeSpan(3), DS3231_A1_Second); // Wake up after 10 seconds
-      LowPower.sleep(2000); // Gets out of sleep mode from interrupt
-      state = INIT;
+      rtc.setAlarm1(rtc.now() + TimeSpan(SLEEP_DURATION), DS3231_A1_Second); // Wake up after 60 seconds
+      LowPower.sleep(SLEEP_DURATION); // Gets out of sleep mode from interrupt. Should this be deepSleep?
+      state = INIT;   
       break;
     }
 
@@ -269,9 +257,18 @@ void loop() {
 
     case LORA_TRANSMIT:{
       // Transmit information over LORA
-        if (Serial){
-          Serial.println("LORA_TRANSMIT");
-        } 
+      if (Serial){
+        Serial.println("LORA_TRANSMIT");
+      } 
+
+      if (!LoRa.begin(915E6)) {
+        while (1){
+          digitalWrite(LED_BUILTIN, HIGH);
+          delay(100);
+          digitalWrite(LED_BUILTIN, LOW);
+          delay(100);
+        }
+      }
 
       char t[16];
       rtc_get_time(2, t, sizeof(t));
@@ -286,7 +283,7 @@ void loop() {
     }
 
     case SERIAL_RECEIVE:{
-      // Listen for serial commands 
+      // Listen for serial commands    
       if (stateStartMillis == 0) {
         stateStartMillis = millis();
 
