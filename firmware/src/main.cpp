@@ -27,15 +27,17 @@ enum State {
 
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
-// State state = INIT;
+State state = INIT;
 State statePrev;
-State state = CALIBRATE;
+// State state = CALIBRATE;
 // volatile State state = BLINK;
-// State state = LORA_TRANSMIT;
+// State state = FLUSH_CHAMBER;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
-const unsigned long FLUSH_DURATION = 3 * 1000; // 10 seconds
+const unsigned long VENT_OPEN_DURATION = 10 * 1000; // Duration to open vent in milliseconds
+const unsigned long FAN_ON_DURATION = 3 * 1000;
+const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION * 2 + FAN_ON_DURATION; // 10 seconds
 const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 3 seconds
 const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; // 25 seconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
@@ -46,10 +48,13 @@ bool shouldSleep = false;
 
 unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
-unsigned PIN_SWITCH = 4;
-unsigned PIN_REED_SWITCH = 5; // Pin for reed switch
+#define PIN_SWITCH A6 // Change to A6
+#define PIN_REED_SWITCH A5 // Change to A5
+unsigned PIN_MOTOR_FORWARD_PWM = 4;
+unsigned PIN_MOTOR_REVERSE_PWM = 5;
 unsigned localAddress = 0xBB; // LoRa local address
 unsigned destinationAddress = 0xFF; // LoRa destination address
+
 
 void wakeupCallback() {
   // This function will be called once on device wakeup
@@ -67,8 +72,24 @@ void reedSwitchCallback(){
   state = BLINK;
 }
 
+void openVent(){
+  digitalWrite(PIN_MOTOR_REVERSE_PWM, LOW); // Ensure reverse is off
+
+  digitalWrite(PIN_MOTOR_FORWARD_PWM, HIGH); // Full speed forward
+  delay(VENT_OPEN_DURATION); // Run motor for specified duration
+  digitalWrite(PIN_MOTOR_FORWARD_PWM, LOW ); // Stop motor
+}
+
+void closeVent(){
+  digitalWrite(PIN_MOTOR_FORWARD_PWM, LOW); // Ensure forward is off
+
+  digitalWrite(PIN_MOTOR_REVERSE_PWM, HIGH); // Full speed reverse
+  delay(VENT_OPEN_DURATION); // Run motor for 5 seconds
+  digitalWrite(PIN_MOTOR_REVERSE_PWM, LOW); // Stop motor
+}
+
 void setup() {
-    // Serial.begin(9600);
+    Serial.begin(9600);
     Serial.println("SD Initializing...");
     if (!SD.begin(chipSelectSD)) {
     }
@@ -95,6 +116,8 @@ void setup() {
     pinMode(PIN_FAN, OUTPUT);
     pinMode(PIN_SWITCH, INPUT_PULLUP);
     pinMode(PIN_REED_SWITCH, INPUT_PULLUP);
+    pinMode(PIN_MOTOR_FORWARD_PWM, OUTPUT);
+    pinMode(PIN_MOTOR_REVERSE_PWM, OUTPUT);
 
     LowPower.attachInterruptWakeup(PIN_WAKEUP, wakeupCallback, CHANGE);
     LowPower.attachInterruptWakeup(PIN_REED_SWITCH, reedSwitchCallback, FALLING);
@@ -125,11 +148,13 @@ void loop() {
         stateStartMillis = millis();
         digitalWrite(PIN_FAN, HIGH);
         // open vent 
+        openVent();
       }
-      else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Flush for 10 seconds
+      else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Enter when flush is complete
         state = ACCUMULATE_GAS;
         stateStartMillis = 0;
         digitalWrite(PIN_FAN, LOW);
+        closeVent();
       }
       break;
     }
