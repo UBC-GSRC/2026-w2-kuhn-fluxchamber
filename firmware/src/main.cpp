@@ -50,8 +50,8 @@ unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
 #define PIN_SWITCH A6 // Change to A6
 #define PIN_REED_SWITCH A5 // Change to A5
-unsigned PIN_MOTOR_FORWARD_PWM = 4;
-unsigned PIN_MOTOR_REVERSE_PWM = 5;
+unsigned PIN_MOTOR_FORWARD_PWM = 5;
+unsigned PIN_MOTOR_REVERSE_PWM = 4;
 unsigned localAddress = 0xBB; // LoRa local address
 unsigned destinationAddress = 0xFF; // LoRa destination address
 
