@@ -34,16 +34,14 @@ void test_data_logging() {
         }
   }
 
-  // Prepare test data (NO String)
-  const char* testRow[5] = {
-      "Test1",
-      "Test2",
-      "Test3",
-      "Test4",
-      "Test5"
-  };
-
-  log_data(testRow, 5, testFile);
+  SensorData data;
+  snprintf(data.date, sizeof(data.date), "2025/12/05");
+  snprintf(data.time, sizeof(data.time), "12:00:00");
+  snprintf(data.temp, sizeof(data.temp), "25.0");
+  snprintf(data.rh, sizeof(data.rh), "50.0");
+  snprintf(data.co2, sizeof(data.co2), "400.0");
+  snprintf(data.ch4, sizeof(data.ch4), "0.2");
+  log_data(data, testFile);
 
   // Read back file
   File dataFile = SD.open(testFile, FILE_READ);
@@ -68,7 +66,7 @@ void test_data_logging() {
   }
 
   // Validate CSV output
-  const char* expectedLine = "Test1,Test2,Test3,Test4,Test5\r";
+  const char* expectedLine = "2025/12/05,12:00:00,400.0,25.0,50.0,0.2\r";
   TEST_ASSERT_EQUAL_STRING_MESSAGE(
       expectedLine,
       lastLine.c_str(),
