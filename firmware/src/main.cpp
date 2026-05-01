@@ -308,7 +308,9 @@ void loop() {
     }
 
     case SERIAL_RECEIVE:{
-      // Listen for serial commands    
+      // Listen for serial commands. 
+      // This is designed to be used with a list of commands to call important functions of the flux chamber for manual operation
+      // Only necessary for easy testing, debugging, etc. Not needed for most people
       if (stateStartMillis == 0) {
         stateStartMillis = millis();
 

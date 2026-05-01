@@ -1,0 +1,13 @@
+﻿Designator,Footprint,Quantity,Value,LCSC Part #
+"_21, _20, _19, _18, _17, _16, _15, _14, _13, _12, _11, _10, _9, _8, _7, _6, _5, _4, _3, _2, ",,21,,
+A1,Arduino_MKR_FOX_1200_Socket,1,Arduino_MKR_WAN_1310_Socket,
+ADS1115,ADS1115_breakout_soldered,1,~,
+"C1, C2",C_Disc_D5.0mm_W2.5mm_P5.00mm,2,2.2uF,
+DRV8871,DRV8871,1,~,
+J1,JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,1,Conn_01x04_Pin,
+J2,JST_XH_B3B-XH-A_1x03_P2.50mm_Vertical,1,Conn_01x03_Pin,
+"J3, J4, J5, J7",JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,4,Conn_01x02_Pin,
+J6,JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical,1,Conn_01x06_Pin,
+L4931CZ50,TO-92L_Inline,1,~,
+RTC1,RTC_DS3231_breakout,1,~,
+SD1,SD_Breakout_offbrand,1,SD Breakout Board,
