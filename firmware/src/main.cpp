@@ -17,7 +17,7 @@ enum State {
   FAKE_SLEEP,       // Fake sleep for testing
   LORA_RECEIVE,     // Listen for serial commands
   LORA_TRANSMIT,    // Transmit status over communication module
-  SERIAL_RECEIVE,   // Listen for serial commands
+  SERIAL_COMMANDS,   // Listen for serial commands
   BLINK,            // Blink LED for testing
   CALIBRATE,        // Calibrate sensors
   TEST_BLINK_DELAY, // Test blinking with delay (blocking)
@@ -27,18 +27,16 @@ enum State {
 
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
-State state = INIT;
+// State state = INIT;
+State state = SERIAL_COMMANDS;
 State statePrev;
-// State state = CALIBRATE;
-// volatile State state = BLINK;
-// State state = FLUSH_CHAMBER;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
-const unsigned long VENT_OPEN_DURATION = 10 * 1000; // Duration to open vent in milliseconds
-const unsigned long FAN_ON_DURATION = 3 * 1000;
+const unsigned long VENT_OPEN_DURATION = 15 * 1000; // Duration to open vent in milliseconds
+const unsigned long FAN_ON_DURATION = 60 * 1000;
 const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION * 2 + FAN_ON_DURATION; // 10 seconds
-const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 3 seconds
+const unsigned long ACCUMULATE_DURATION = 300 * 1000; // 3 seconds
 const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; // 25 seconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
 const unsigned long SLEEP_DURATION = 60 * 1000; // 60 seconds
@@ -54,7 +52,7 @@ unsigned PIN_MOTOR_FORWARD_PWM = 5;
 unsigned PIN_MOTOR_REVERSE_PWM = 4;
 unsigned localAddress = 0xBB; // LoRa local address
 unsigned destinationAddress = 0xFF; // LoRa destination address
-
+bool flagReadContinuous = false; // Flag to indicate continuous reading mode
 
 void wakeupCallback() {
   // This function will be called once on device wakeup
@@ -132,7 +130,11 @@ void loop() {
       if (Serial){
           Serial.println("INIT");
       }
-      state = FLUSH_CHAMBER;
+      if (digitalRead(PIN_SWITCH) == LOW){
+        state = SERIAL_COMMANDS; // Go to serial commands if switch is low 
+      } else {
+        state = FLUSH_CHAMBER; // Start in normal mode if switch is high
+      }
       break;
     }
 
@@ -185,7 +187,7 @@ void loop() {
         stateStartMillis = millis();
         k33.initPoll();
       }
-      else if (millis() - stateStartMillis >= CO2_GAS_DIFFUSION_DURATION) { // Warmup for 16 seconds
+      else if (millis() - stateStartMillis >= CO2_GAS_DIFFUSION_DURATION) { // Warmup
         // wait until CO2 sensor is ready, then read data        
         // progress in the state machine
         rtc_get_time(1, data.date, sizeof(data.date));
@@ -209,9 +211,9 @@ void loop() {
           Serial.print(" CH4 (V): "); Serial.print(data.ch4);
         }
 
-        if (statePrev == CALIBRATE){
+        if (statePrev == SERIAL_COMMANDS){
           // If coming from calibration mode, stay in calibration mode to compare with licor readings
-          state = CALIBRATE;
+          state = SERIAL_COMMANDS;
           statePrev = READ_DATA;
         } else {
           // Otherwise, move to logging mode
@@ -307,22 +309,95 @@ void loop() {
       break;
     }
 
-    case SERIAL_RECEIVE:{
+    case SERIAL_COMMANDS:{
       // Listen for serial commands. 
       // This is designed to be used with a list of commands to call important functions of the flux chamber for manual operation
       // Only necessary for easy testing, debugging, etc. Not needed for most people
-      if (stateStartMillis == 0) {
-        stateStartMillis = millis();
-
-        if (Serial){
-          Serial.println("SERIAL_RECEIVE");
-        } 
-      }
-      else if (millis() - stateStartMillis >= 5000) { // Wait for 5 seconds
-        state = SLEEP;
+      // Logic mostly written by Robin2 on https://forum.arduino.cc/t/simple-code-to-send-a-struct-between-arduinos-using-serial/672196 
+      if (digitalRead(PIN_SWITCH) == HIGH) { // Wait for 5 seconds
+        state = INIT; // return to normal operations 
         stateStartMillis = 0;
       }
+
       Serial.begin(9600);
+      while(!Serial){
+        // if (digitalRead(PIN_SWITCH) == HIGH) { 
+        //   state = INIT; // return to normal operations 
+        // }
+        delay(100);
+      }
+      Serial.println("Ready for serial commands.");
+
+      Command rxData;
+      // while (digitalRead(PIN_SWITCH) == LOW){
+      while (true){
+        if (recvStruct(&rxData)){
+          // Process command based on rxData.id
+          switch (rxData.id) {
+            case 1:
+              Serial.println("Received command to readSensorsContinuous.");
+              state = READ_DATA;
+              statePrev = SERIAL_COMMANDS;
+              flagReadContinuous = true;
+              break;
+            case 2:
+              Serial.println("Received command to readSensorsOnce.");
+              state = READ_DATA;
+              statePrev = SERIAL_COMMANDS;
+              flagReadContinuous = false;
+              break;
+            case 3:
+              Serial.println("Received command to openVent.");
+              openVent();
+              break;
+            case 4:
+              Serial.println("Received command to closeVent.");
+              closeVent();
+              break;
+            case 5:
+              Serial.println("Received command to startFan.");
+              digitalWrite(PIN_FAN, HIGH);
+              break;
+            case 6:
+              Serial.println("Received command to stopFan.");
+              digitalWrite(PIN_FAN, LOW);
+              break;
+            case 7:  
+              Serial.println("Received command to setDateTime.");
+              rtc.adjust(DateTime(rxData.year, rxData.month, rxData.day, rxData.hour, rxData.minute, rxData.second));
+              Serial.println("DateTime SET:");
+              Serial.print(rxData.year);
+              Serial.print("-");
+              Serial.print(rxData.month);
+              Serial.print("-");
+              Serial.println(rxData.day);
+              Serial.print(rxData.hour);
+              Serial.print(":");
+              Serial.print(rxData.minute);  
+              Serial.print(":");
+              Serial.println(rxData.second);
+              break;
+            case 8:
+              Serial.println("Received command to getDateTime.");
+              char t[16];
+              rtc_get_time(2, t, sizeof(t));
+              Serial.print("Time:");
+              Serial.println(t);
+              break;
+            default:
+              Serial.print("Unknown command ID: ");
+              Serial.println(rxData.id);
+              break;
+          }
+        }
+        else if(flagReadContinuous && statePrev == READ_DATA) {
+          state = READ_DATA;
+          statePrev = SERIAL_COMMANDS;
+        }
+        else{
+          delay(100);
+        }
+      }
       
       break;
     }

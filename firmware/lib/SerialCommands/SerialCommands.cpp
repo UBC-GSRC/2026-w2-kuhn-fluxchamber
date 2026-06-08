@@ -30,7 +30,7 @@ bool readSerialLineBlocking(char* buf, size_t bufSize) {
     }
 }
 
-// --- Parse timestamp string into DT struct ---
+// --- Parse timestamp string into DateTime struct ---
 bool parseTimestamp(const char* str, DT& dt) {
     if (strlen(str) != 19) return false;
 
@@ -118,4 +118,43 @@ void checkSerial() {
             // else: ignore excess chars
         }
     }
+}
+
+const int startMarker = 255;
+
+bool recvStruct(Command* rxData) {
+
+    static byte buffer[rxDataLen];
+    static uint16_t bytesRead = 0;
+    static bool receiving = false;
+
+    while (Serial.available()) {
+
+        byte incoming = Serial.read();
+
+        // Wait for start marker
+        if (!receiving) {
+            if (incoming == startMarker) {
+                receiving = true;
+                bytesRead = 0;
+            }
+        }
+        else {
+            buffer[bytesRead++] = incoming;
+
+            // Full struct received
+            if (bytesRead >= rxDataLen) {
+
+                // Copy buffer into struct
+                memcpy(rxData, buffer, rxDataLen);
+
+
+                // Reset state
+                receiving = false;
+                bytesRead = 0;
+                return true; // Indicate new data received
+            }
+        }
+    }
+    return false; // No new data
 }
