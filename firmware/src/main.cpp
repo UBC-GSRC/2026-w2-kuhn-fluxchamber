@@ -86,6 +86,32 @@ void closeVent(){
   digitalWrite(PIN_MOTOR_REVERSE_PWM, LOW); // Stop motor
 }
 
+void readDataBlocking(){
+  k33.initPoll();
+  delay(CO2_GAS_DIFFUSION_DURATION);
+
+  // wait until CO2 sensor is ready, then read data        
+  rtc_get_time(1, data.date, sizeof(data.date));
+  rtc_get_time(2, data.time, sizeof(data.time));
+  snprintf(data.temp, sizeof(data.temp), "%.1f", k33.readTemp());
+  delay(20);
+  snprintf(data.rh, sizeof(data.rh), "%.1f", k33.readRh());
+  delay(20);
+  snprintf(data.co2, sizeof(data.co2), "%.1f", k33.readCo2());
+  delay(20);
+  snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
+  delay(20);
+  
+  if (Serial) {
+    Serial.print("Date: "); Serial.print(data.date);
+    Serial.print(" Time: "); Serial.print(data.time);
+    Serial.print(" CO2 (ppm): "); Serial.print(data.co2);
+    Serial.print(" Temp (C): "); Serial.print(data.temp);
+    Serial.print(" RH (%): "); Serial.print(data.rh);
+    Serial.print(" CH4 (V): "); Serial.println(data.ch4);
+  }
+}
+
 void setup() {
     Serial.begin(9600);
     Serial.println("SD Initializing...");
@@ -210,15 +236,7 @@ void loop() {
           Serial.print(" RH (%): "); Serial.print(data.rh);
           Serial.print(" CH4 (V): "); Serial.print(data.ch4);
         }
-
-        if (statePrev == SERIAL_COMMANDS){
-          // If coming from calibration mode, stay in calibration mode to compare with licor readings
-          state = SERIAL_COMMANDS;
-          statePrev = READ_DATA;
-        } else {
-          // Otherwise, move to logging mode
-          state = LOG_DATA;
-        }
+        state = LOG_DATA;
       }
       else {
         digitalWrite(LED_BUILTIN, HIGH); // Turn on LED while waiting for sensor to be ready
@@ -335,16 +353,11 @@ void loop() {
           // Process command based on rxData.id
           switch (rxData.id) {
             case 1:
-              Serial.println("Received command to readSensorsContinuous.");
-              state = READ_DATA;
-              statePrev = SERIAL_COMMANDS;
-              flagReadContinuous = true;
+              readDataBlocking();
               break;
             case 2:
               Serial.println("Received command to readSensorsOnce.");
-              state = READ_DATA;
-              statePrev = SERIAL_COMMANDS;
-              flagReadContinuous = false;
+              readDataBlocking();
               break;
             case 3:
               Serial.println("Received command to openVent.");

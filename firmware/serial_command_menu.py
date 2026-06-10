@@ -1,3 +1,4 @@
+
 import serial
 import struct
 import time
@@ -8,22 +9,31 @@ COM_PORT = 'COM13'       # Change to your Arduino port
 BAUD_RATE = 9600
 START_MARKER = 255
 
-# Struct format (must match Arduino)
-
 STRUCT_FORMAT = "<7i"  # cmd_id, year, month, day, hour, minute, second
 
 # ---- SERIAL SETUP ----
 ser = serial.Serial(COM_PORT, BAUD_RATE)
 
-cmd_id = 8
+# ---- COMMAND DESCRIPTIONS ----
+COMMANDS = {
+    0: "Do nothing / idle",
+    1: "Read sensors continuously",
+    2: "Read sensors once",
+    3: "Open vent",
+    4: "Close vent",
+    5: "Start fan",
+    6: "Stop fan",
+    7: "Set date/time",
+    8: "Get date/time",
+    9: "Reserved / test"
+}
 
+# ---- FUNCTIONS ----
 def build_packet(cmd_id, year, month, day, hour, minute, second):
     return struct.pack(STRUCT_FORMAT, cmd_id, year, month, day, hour, minute, second)
 
 def read_response():
-    """Read and print all available incoming serial data."""
-    time.sleep(0.1)  # give Arduino time to respond
-
+    time.sleep(0.1)
     while ser.in_waiting:
         try:
             line = ser.readline().decode(errors='ignore').strip()
@@ -33,56 +43,81 @@ def read_response():
             print(f"[READ ERROR] {e}")
             break
 
-def readSensorsContinuous():
-    cmd_id = 1
+def print_menu():
+    print("\n==== COMMAND MENU ====")
+    for key in sorted(COMMANDS.keys()):
+        print(f"{key}: {COMMANDS[key]}")
+    print("======================")
 
-def readSensorsOnce():
-    cmd_id = 2
+def wait_for_reading():
+    i = 0 
+    while i < 26:
+        read_response()
+        i += 1
+        time.sleep(1)
 
-def openVent():
-    cmd_id = 3
+def send_serial_command(cmd_id):
+    ser.reset_input_buffer()
+    ser.write(bytes([START_MARKER]))
+    ser.write(packet)
+
+    print(f"[SENT] ID={cmd_id} ({COMMANDS[cmd_id]}) "
+        f"Time={now.strftime('%Y-%m-%d %H:%M:%S')}")
     
-def closeVent():
-    cmd_id = 4
+def get_user_choice():
+    while True:
+        try:
+            choice = int(input("Enter command (0-9): "))
+            if 0 <= choice <= 9:
+                return choice
+            else:
+                print("Invalid range. Choose 0–9.")
 
-def startFan():
-    cmd_id = 5  
+        except ValueError:
+            print("Invalid input. Enter a number.")
 
-def stopFan():
-    cmd_id = 6
-
-def setDateTime():
-    cmd_id = 7
-
-def getDateTime():
-    cmd_id = 8
-
+# ---- MAIN LOOP ----
 try:
     print(f"Connected to {COM_PORT}")
     ser.reset_input_buffer()
 
     while True:
+        print_menu()
+        cmd_id = get_user_choice()
+
         now = datetime.now()
-        # ---- Build and send packet ----
-        packet = build_packet(cmd_id, now.year, now.month, now.day, now.hour, now.minute, now.second)
 
-        ser.flushInput()  # Clear input buffer before sending
-        ser.write(bytes([START_MARKER]))
-        ser.write(packet)
+        packet = build_packet(
+            cmd_id,
+            now.year,
+            now.month,
+            now.day,
+            now.hour,
+            now.minute,
+            now.second
+        )
 
-        print(f"[SENT] ID={cmd_id} Time={now.strftime('%Y-%m-%d %H:%M:%S')}")
+        if cmd_id == 1:
+            print("\nSensor is reading continuously... press Ctrl+C to stop.\n")
+            try:
+                print("\nSensor is reading... please wait 30 seconds between each reading.\n")
+                while True:
+                    send_serial_command(cmd_id)
+                    wait_for_reading()
+            except KeyboardInterrupt:
+                print("\nStopping continuous read...")
 
-        # ---- Listen for Arduino response ----
-        read_response()
+        elif cmd_id == 2:
+            send_serial_command(cmd_id)
+            print("\nSensor is reading... please wait 30 seconds.\n")
 
-        if cmd_id < 9:
-            cmd_id += 1
+            wait_for_reading()
         else:
-            cmd_id = 0
-        time.sleep(5)
+            send_serial_command(cmd_id)
+            read_response()
 
 except KeyboardInterrupt:
-    print("Stopping...")
+    print("\nStopping...")
 
 finally:
     if ser.is_open:
