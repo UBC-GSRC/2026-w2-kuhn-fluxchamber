@@ -15,7 +15,7 @@ enum State {
   LOG_DATA,         // Log data to SD card
   SLEEP,            // Enter low-power sleep mode
   FAKE_SLEEP,       // Fake sleep for testing
-  LORA_RECEIVE,     // Listen for serial commands
+  // LORA_RECEIVE,     // Listen for serial commands
   LORA_TRANSMIT,    // Transmit status over communication module
   SERIAL_COMMANDS,   // Listen for serial commands
   BLINK,            // Blink LED for testing
@@ -28,18 +28,22 @@ enum State {
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
 // State state = INIT;
+// State state = FLUSH_CHAMBER;
 State state = SERIAL_COMMANDS;
 State statePrev;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
 const unsigned long VENT_OPEN_DURATION = 15 * 1000; // Duration to open vent in milliseconds
-const unsigned long FAN_ON_DURATION = 60 * 1000;
+const unsigned long FAN_ON_DURATION = 5 * 1000;
 const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION * 2 + FAN_ON_DURATION; // 10 seconds
-const unsigned long ACCUMULATE_DURATION = 300 * 1000; // 3 seconds
+const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 300 seconds
 const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; // 25 seconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
-const unsigned long SLEEP_DURATION = 60 * 1000; // 60 seconds
+const unsigned long SLEEP_DURATION = 30 * 1000; // 30 seconds
+const unsigned int LORA_TRANSMIT_INTERVAL = 1 * 60 * 1000; // Transmit every 1 minute
+const unsigned int SAMPLE_INTERVAL = 5 * 60 * 1000; // Take a sample every 5 minutes
+uint8_t loraTransmitCounter = 0;
 SensorData data;
 bool shouldSleep = false;
 
@@ -53,10 +57,49 @@ unsigned PIN_MOTOR_REVERSE_PWM = 4;
 unsigned localAddress = 0xBB; // LoRa local address
 unsigned destinationAddress = 0xFF; // LoRa destination address
 bool flagReadContinuous = false; // Flag to indicate continuous reading mode
+bool flagTransmitLora = false;
 
+void ledStateIndicator(int numBlinks) {
+  for (int i = 0; i < numBlinks; i++) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(200);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(200);
+  }
+}
+
+void LoRaTransmitSingle(){
+  if (!LoRa.begin(915E6)) {
+      while (1){
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(100);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(100);
+      }
+    }
+
+    char t[16];
+    rtc_get_time(2, t, sizeof(t));
+    LoRa.beginPacket();
+    LoRa.write(destinationAddress);
+    LoRa.write(localAddress);
+    LoRa.print("Date: "); LoRa.print(data.date);
+    LoRa.print(" Time: "); LoRa.print(data.time);
+    LoRa.print(" Temp: "); LoRa.print(data.temp);
+    LoRa.print(" RH: "); LoRa.print(data.rh);
+    LoRa.print(" CO2: "); LoRa.print(data.co2);
+    LoRa.print(" CH4: "); LoRa.print(data.ch4);
+    LoRa.endPacket();
+
+    LoRa.end();
+}
 void wakeupCallback() {
   // This function will be called once on device wakeup
-  state = LORA_RECEIVE;
+  state = LORA_TRANSMIT;
+}
+
+void rtcAlarmCallback(){
+  flagTransmitLora = true;
 }
 
 void turnOnFan(int duration_ms) {
@@ -254,20 +297,33 @@ void loop() {
       }
 
       log_data(data, datalogFile); 
-      state = LORA_RECEIVE;
+      state = LORA_TRANSMIT;
       break;
     }
 
-    case LORA_RECEIVE:{
-      // Listen for incoming LORA packets which match a known format
-      // Listen for a set duration 
+    case LORA_TRANSMIT:{
+      // Transmit information over LORA
       if (Serial){
-          Serial.println("LORA_RECEIVE");
-      }
-      state = SLEEP;
+        Serial.println("LORA_TRANSMIT");
+      } 
 
+      LoRaTransmitSingle();
+
+      loraTransmitCounter++;
+      state = SLEEP;
       break;
     }
+
+    // case LORA_RECEIVE:{
+    //   // Listen for incoming LORA packets which match a known format
+    //   // Listen for a set duration 
+    //   if (Serial){
+    //       Serial.println("LORA_RECEIVE");
+    //   }
+    //   state = SLEEP;
+
+    //   break;
+    // }
 
     case SLEEP:{
       // Enter low-power sleep mode 
@@ -277,9 +333,16 @@ void loop() {
           Serial.println("SLEEP");
       } 
 
-      rtc.setAlarm1(rtc.now() + TimeSpan(SLEEP_DURATION), DS3231_A1_Second); // Wake up after 60 seconds
-      LowPower.sleep(SLEEP_DURATION); // Gets out of sleep mode from interrupt. Should this be deepSleep?
-      state = INIT;   
+      // rtc.setAlarm1(rtc.now() + TimeSpan(SLEEP_DURATION), DS3231_A1_Second); // Wake up after 60 seconds. May need to add back into code! Pretty sure this doesn't work tho.
+      LowPower.sleep(SLEEP_DURATION); // Should this be deepSleep?
+
+      if (loraTransmitCounter * LORA_TRANSMIT_INTERVAL >= SAMPLE_INTERVAL) { // After transmitting for an hour, do a fake sleep to test waking up and transmitting after long sleep
+        loraTransmitCounter = 0;
+        state = INIT;   
+      }
+      else {
+        state = LORA_TRANSMIT; // Transmit again after waking up
+      }
       break;
     }
 
@@ -300,32 +363,7 @@ void loop() {
       break;
     }
 
-    case LORA_TRANSMIT:{
-      // Transmit information over LORA
-      if (Serial){
-        Serial.println("LORA_TRANSMIT");
-      } 
-
-      if (!LoRa.begin(915E6)) {
-        while (1){
-          digitalWrite(LED_BUILTIN, HIGH);
-          delay(100);
-          digitalWrite(LED_BUILTIN, LOW);
-          delay(100);
-        }
-      }
-
-      char t[16];
-      rtc_get_time(2, t, sizeof(t));
-      LoRa.beginPacket();
-      LoRa.write(destinationAddress);
-      LoRa.write(localAddress);
-      LoRa.print(t);
-      LoRa.endPacket();
-
-      delay(5000);
-      break;
-    }
+   
 
     case SERIAL_COMMANDS:{
       // Listen for serial commands. 
@@ -396,6 +434,12 @@ void loop() {
               rtc_get_time(2, t, sizeof(t));
               Serial.print("Time:");
               Serial.println(t);
+              break;
+            case 9:
+              Serial.println("Received command to transmitLoRa.");
+              
+              LoRaTransmitSingle();
+            
               break;
             default:
               Serial.print("Unknown command ID: ");

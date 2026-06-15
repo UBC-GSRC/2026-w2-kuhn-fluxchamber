@@ -25,7 +25,7 @@ COMMANDS = {
     6: "Stop fan",
     7: "Set date/time",
     8: "Get date/time",
-    9: "Reserved / test"
+    9: "Transmit LoRa"
 }
 
 # ---- FUNCTIONS ----

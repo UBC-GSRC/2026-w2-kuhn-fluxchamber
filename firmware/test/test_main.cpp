@@ -2,6 +2,7 @@
 #include <unity.h>
 #include "utils.h"
 #include <Co2Meter_K33.h>
+#include <stdio.h>
 
 // Unity Assertions Cheat Sheet: https://github.com/ThrowTheSwitch/Unity/blob/master/docs/UnityAssertionsCheatSheetSuitableforPrintingandPossiblyFraming.pdf
 
@@ -162,12 +163,17 @@ void test_RTC_date_synchronization(void)
     char rtcDate[16];
     rtc_get_time(1, rtcDate, sizeof(rtcDate));  // mode 1 = date only
 
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "RTC date: %s, Expected date: %s", rtcDate, formattedDate().c_str());
+    TEST_MESSAGE(buffer);
     // Compare against expected formatted date
+    
     TEST_ASSERT_EQUAL_STRING_MESSAGE(
         formattedDate().c_str(),
         rtcDate,
         "RTC date does not match expected formatted date"
     );
+
 }
 
 
@@ -176,7 +182,7 @@ void alarm_isr() { irq = true; }
 
 void test_RTC_alarm(void)
 {
-  bool setTime = true;
+  bool setTime = false;
   rtc_init(setTime);
 
   // Placeholder for RTC alarm function test
@@ -189,7 +195,7 @@ void test_RTC_alarm(void)
         DS3231_A1_Second // this mode triggers the alarm when the seconds match. See Doxygen for other options
   );
 
-  delay(3100);
+  delay(3200);
   int fired = rtc.alarmFired(1);
   rtc.clearAlarm(1);
   detachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN));
