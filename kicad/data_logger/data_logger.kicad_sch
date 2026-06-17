@@ -6729,6 +6729,16 @@
 		)
 		(uuid "ef481a22-450d-4e15-8507-8d29b221385f")
 	)
+	(text "NOTE: External interrupts not available on A5... use A1/A2 instead!"
+		(exclude_from_sim no)
+		(at 248.92 169.672 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "f74d8984-6606-4aa4-8857-bb278d481406")
+	)
 	(text "LDO Filter Capacitors"
 		(exclude_from_sim no)
 		(at 174.498 111.76 0)
