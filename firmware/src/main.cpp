@@ -27,26 +27,24 @@ enum State {
 
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
-// State state = INIT;
+State state = INIT;
 // State state = FLUSH_CHAMBER;
-State state = SERIAL_COMMANDS;
+// State state = SERIAL_COMMANDS;
 State statePrev;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
-const unsigned long VENT_OPEN_DURATION = 15 * 1000; // Duration to open vent in milliseconds
-const unsigned long FAN_ON_DURATION = 5 * 1000;
-const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION * 2 + FAN_ON_DURATION; // 10 seconds
-const unsigned long ACCUMULATE_DURATION = 3 * 1000; // 300 seconds
-const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; // 25 seconds
-const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; // 15 seconds for testing
-const unsigned long SLEEP_DURATION = 30 * 1000; // 30 seconds
-const unsigned int LORA_TRANSMIT_INTERVAL = 1 * 60 * 1000; // Transmit every 1 minute
-const unsigned int SAMPLE_INTERVAL = 5 * 60 * 1000; // Take a sample every 5 minutes
+const unsigned long VENT_OPEN_DURATION = 5 * 1000; // Duration to open vent in seconds
+const unsigned long VENT_CLOSE_DURATION = VENT_OPEN_DURATION + 1000; // Close for longer than open to ensure vent is fully closed
+const unsigned long FAN_ON_DURATION = 30 * 1000;
+const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION * 2 + FAN_ON_DURATION; //  seconds
+const unsigned long ACCUMULATE_DURATION = 3 * 1000; // seconds
+const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; //  seconds
+const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; //  seconds for testing
+const unsigned long LORA_TRANSMIT_INTERVAL = 1 * 30 * 1000; // seconds
+const unsigned long SAMPLE_INTERVAL = 2 * 60 * 1000; // seconds
 uint8_t loraTransmitCounter = 0;
 SensorData data;
-bool shouldSleep = false;
-
 
 unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
 unsigned PIN_FAN = 7; // Pin to control fan
@@ -125,7 +123,7 @@ void closeVent(){
   digitalWrite(PIN_MOTOR_FORWARD_PWM, LOW); // Ensure forward is off
 
   digitalWrite(PIN_MOTOR_REVERSE_PWM, HIGH); // Full speed reverse
-  delay(VENT_OPEN_DURATION); // Run motor for 5 seconds
+  delay(VENT_CLOSE_DURATION); // Run motor for specified duration
   digitalWrite(PIN_MOTOR_REVERSE_PWM, LOW); // Stop motor
 }
 
@@ -334,7 +332,7 @@ void loop() {
       } 
 
       // rtc.setAlarm1(rtc.now() + TimeSpan(SLEEP_DURATION), DS3231_A1_Second); // Wake up after 60 seconds. May need to add back into code! Pretty sure this doesn't work tho.
-      LowPower.sleep(SLEEP_DURATION); // Should this be deepSleep?
+      LowPower.sleep(LORA_TRANSMIT_INTERVAL); // Should this be deepSleep?
 
       if (loraTransmitCounter * LORA_TRANSMIT_INTERVAL >= SAMPLE_INTERVAL) { // After transmitting for an hour, do a fake sleep to test waking up and transmitting after long sleep
         loraTransmitCounter = 0;
@@ -386,7 +384,7 @@ void loop() {
 
       Command rxData;
       // while (digitalRead(PIN_SWITCH) == LOW){
-      while (true){
+      while (digitalRead(PIN_SWITCH) == LOW){
         if (recvStruct(&rxData)){
           // Process command based on rxData.id
           switch (rxData.id) {
