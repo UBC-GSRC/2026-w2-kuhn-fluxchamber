@@ -10,6 +10,7 @@
 enum State {
   INIT,             // Initialize the system
   FLUSH_CHAMBER,    // Fill chamber with fresh air
+  ACCUMULATE_AND_READ, // Accumulate gas and read data from sensors
   ACCUMULATE_GAS,   // Let gas accumulate in chamber before measurement
   READ_DATA,        // Read data from sensor(s)
   LOG_DATA,         // Log data to SD card
@@ -34,16 +35,19 @@ State statePrev;
 
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
-const unsigned long VENT_OPEN_DURATION = 5 * 1000; // Duration to open vent in seconds
+unsigned long initStartUnixTime_s;
+const unsigned long VENT_OPEN_DURATION = 5 * 1000; // Duration to open vent in milliseconds
 const unsigned long VENT_CLOSE_DURATION = VENT_OPEN_DURATION + 1000; // Close for longer than open to ensure vent is fully closed
 const unsigned long FAN_ON_DURATION = 30 * 1000;
-const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION * 2 + FAN_ON_DURATION; //  seconds
-const unsigned long ACCUMULATE_DURATION = 3 * 1000; // seconds
-const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; //  seconds
-const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; //  seconds for testing
-const unsigned long LORA_TRANSMIT_INTERVAL = 1 * 30 * 1000; // seconds
-const unsigned long SAMPLE_INTERVAL = 2 * 60 * 1000; // seconds
-uint8_t loraTransmitCounter = 0;
+const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION + VENT_CLOSE_DURATION + FAN_ON_DURATION; //  milliseconds
+const unsigned long ACCUMULATE_DURATION = 3 * 1000; // milliseconds
+const unsigned long MEASUREMENT_INTERVAL = 30 * 1000; // time between readings in milliseconds
+const unsigned long MEASUREMENT_WINDOW = 5 * 60 * 1000; // time window in which we take periodic measurements in milliseconds
+const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; //  milliseconds
+const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; //  milliseconds for testing
+const unsigned long LORA_TRANSMIT_INTERVAL = 1 * 30 * 1000; // milliseconds
+// const unsigned long SAMPLE_INTERVAL = 3 * 60 * 60 * 1000; // milliseconds (eventually should be between 1 and 3 hours, lowest you can reasonably do with your battery)
+const unsigned long SAMPLE_INTERVAL = 30 * 60 * 1000; // milliseconds 7 minutes for testing
 SensorData data;
 
 unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
@@ -196,7 +200,8 @@ void loop() {
       // Initialization 
       if (Serial){
           Serial.println("INIT");
-      }
+        }
+        
       if (digitalRead(PIN_SWITCH) == LOW){
         state = SERIAL_COMMANDS; // Go to serial commands if switch is low 
       } else {
@@ -204,7 +209,7 @@ void loop() {
       }
       break;
     }
-
+    
     case FLUSH_CHAMBER:{
       // Flush the chamber to reach equilibrium with ambient air.
       // 1. Open vent 
@@ -215,15 +220,61 @@ void loop() {
           Serial.println("FLUSH_CHAMBER");
         }
         stateStartMillis = millis();
+        initStartUnixTime_s = rtc.now().unixtime();
         digitalWrite(PIN_FAN, HIGH);
         // open vent 
         openVent();
       }
       else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Enter when flush is complete
-        state = ACCUMULATE_GAS;
+        // state = ACCUMULATE_GAS;
+        state = ACCUMULATE_AND_READ;
         stateStartMillis = 0;
         digitalWrite(PIN_FAN, LOW);
         closeVent();
+      }
+      break;
+    }
+
+    case ACCUMULATE_AND_READ: {
+      // Let gas accumulate in chamber through diffusive flux and read data from sensors periodically
+      unsigned long elapsedTime = rtc.now().unixtime() - initStartUnixTime_s;
+      if (stateStartMillis == 0) {
+        if (Serial){
+          Serial.println("ACCUMULATE_AND_READ");
+        }
+        stateStartMillis = millis();
+      }
+      else if (elapsedTime >= (MEASUREMENT_WINDOW / 1000)) { // Accumulate and read for a set duration
+        state = LORA_TRANSMIT; // Move to LORA_TRANSMIT state after the accumulation and reading duration
+        stateStartMillis = 0;
+      }
+      else if (elapsedTime < (MEASUREMENT_WINDOW / 1000)) { 
+        // send message to CO2 sensor to start reading data
+        k33.initPoll();
+
+        // Sleep for the duration of CO2 gas diffusion
+        LowPower.sleep(CO2_GAS_DIFFUSION_DURATION); 
+
+        // get data
+        rtc_get_time(1, data.date, sizeof(data.date));
+        rtc_get_time(2, data.time, sizeof(data.time));
+        snprintf(data.temp, sizeof(data.temp), "%.1f", k33.readTemp());
+        delay(20);
+        snprintf(data.rh, sizeof(data.rh), "%.1f", k33.readRh());
+        delay(20);
+        snprintf(data.co2, sizeof(data.co2), "%.1f", k33.readCo2());
+        delay(20);
+        snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
+        delay(20);
+
+        // write to SD
+        log_data(data, datalogFile); 
+
+        // send LoRa transmission
+        LoRaTransmitSingle();
+
+        // sleep until the next measurement interval
+        LowPower.sleep(MEASUREMENT_INTERVAL - CO2_GAS_DIFFUSION_DURATION); // Sleep for the remaining time in the measurement interval. Subtract 300 ms to not overshoot
       }
       break;
     }
@@ -307,7 +358,6 @@ void loop() {
 
       LoRaTransmitSingle();
 
-      loraTransmitCounter++;
       state = SLEEP;
       break;
     }
@@ -332,14 +382,13 @@ void loop() {
       } 
 
       // rtc.setAlarm1(rtc.now() + TimeSpan(SLEEP_DURATION), DS3231_A1_Second); // Wake up after 60 seconds. May need to add back into code! Pretty sure this doesn't work tho.
-      LowPower.sleep(LORA_TRANSMIT_INTERVAL); // Should this be deepSleep?
-
-      if (loraTransmitCounter * LORA_TRANSMIT_INTERVAL >= SAMPLE_INTERVAL) { // After transmitting for an hour, do a fake sleep to test waking up and transmitting after long sleep
-        loraTransmitCounter = 0;
-        state = INIT;   
+      // rtc.now().unixtime() - initStartUnixTime_s < MEASUREMENT_WINDOW / 1000
+      if (rtc.now().unixtime() - initStartUnixTime_s >= (SAMPLE_INTERVAL / 1000) - (LORA_TRANSMIT_INTERVAL / 1000)) { // Restart the sampling process after crossing the sample interval time threshold. Accounts for how long it takes to flush before getting your reading
+        state = FLUSH_CHAMBER;
       }
       else {
         state = LORA_TRANSMIT; // Transmit again after waking up
+        LowPower.sleep(LORA_TRANSMIT_INTERVAL); // Should this be deepSleep?
       }
       break;
     }
