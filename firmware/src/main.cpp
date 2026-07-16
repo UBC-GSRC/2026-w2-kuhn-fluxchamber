@@ -7,6 +7,9 @@
 #include "SerialCommands.h"
 #include <LoRa.h>
 
+#define TYPE_CALIBRATION 0
+#define TYPE_MEASUREMENT 1
+
 enum State {
   INIT,             // Initialize the system
   FLUSH_CHAMBER,    // Fill chamber with fresh air
@@ -17,6 +20,7 @@ enum State {
   SLEEP,            // Enter low-power sleep mode
   FAKE_SLEEP,       // Fake sleep for testing
   // LORA_RECEIVE,     // Listen for serial commands
+  SLEEP_AND_TRANSMIT, // Sleep and transmit data over LoRa
   LORA_TRANSMIT,    // Transmit status over communication module
   SERIAL_COMMANDS,   // Listen for serial commands
   BLINK,            // Blink LED for testing
@@ -36,18 +40,25 @@ State statePrev;
 const char* datalogFile = "datalog.csv";
 unsigned long stateStartMillis = 0;
 unsigned long initStartUnixTime_s;
+unsigned long accumulateStartUnixTime_s;
 const unsigned long VENT_OPEN_DURATION = 5 * 1000; // Duration to open vent in milliseconds
 const unsigned long VENT_CLOSE_DURATION = VENT_OPEN_DURATION + 1000; // Close for longer than open to ensure vent is fully closed
 const unsigned long FAN_ON_DURATION = 30 * 1000;
-const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION + VENT_CLOSE_DURATION + FAN_ON_DURATION; //  milliseconds
+const unsigned long CALIBRATE_DURATION = 60 * 1000; // milliseconds
+const unsigned long FLUSH_DURATION = VENT_OPEN_DURATION + VENT_CLOSE_DURATION + FAN_ON_DURATION + CALIBRATE_DURATION; //  milliseconds
 const unsigned long ACCUMULATE_DURATION = 3 * 1000; // milliseconds
 const unsigned long MEASUREMENT_INTERVAL = 30 * 1000; // time between readings in milliseconds
-const unsigned long MEASUREMENT_WINDOW = 5 * 60 * 1000; // time window in which we take periodic measurements in milliseconds
+const unsigned long MEASUREMENT_WINDOW = 5 * 60 * 1000; // time window in which we take periodic measurements in milliseconds 
+const unsigned long MEASUREMENT_COUNT = (MEASUREMENT_WINDOW + 1000) / MEASUREMENT_INTERVAL; // number of measurements to take in the measurement window (adding a second to make sure integer division doesn't round down)
+const unsigned long SAMPLE_INTERVAL = 1 * 10 * 60 * 1000; // milliseconds
 const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; //  milliseconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; //  milliseconds for testing
-const unsigned long LORA_TRANSMIT_INTERVAL = 1 * 30 * 1000; // milliseconds
+const unsigned long LORA_TRANSMIT_INTERVAL = 10 * 60 * 1000; // milliseconds
+const unsigned long SLEEP_AND_TRANSMIT_DURATION = SAMPLE_INTERVAL - FLUSH_DURATION - CO2_GAS_DIFFUSION_DURATION - MEASUREMENT_WINDOW; // milliseconds
+const unsigned long LORA_TRANSMISSIONS_COUNT = SLEEP_AND_TRANSMIT_DURATION / LORA_TRANSMIT_INTERVAL; // number of lora transmissions during sleep and transmit state
+const unsigned long LORA_TRANSMIT_DURATION = 300; // milliseconds
+const unsigned long FINAL_SLEEP_DURATION = SLEEP_AND_TRANSMIT_DURATION - ((LORA_TRANSMISSIONS_COUNT * LORA_TRANSMIT_INTERVAL) + (LORA_TRANSMISSIONS_COUNT * LORA_TRANSMIT_DURATION)); // milliseconds
 // const unsigned long SAMPLE_INTERVAL = 3 * 60 * 60 * 1000; // milliseconds (eventually should be between 1 and 3 hours, lowest you can reasonably do with your battery)
-const unsigned long SAMPLE_INTERVAL = 30 * 60 * 1000; // milliseconds 7 minutes for testing
 SensorData data;
 
 unsigned PIN_WAKEUP = 3; // Pin to wake up from sleep
@@ -70,7 +81,7 @@ void ledStateIndicator(int numBlinks) {
   }
 }
 
-void LoRaTransmitSingle(){
+void LoRaTransmitSingle(bool calibration = false){
   if (!LoRa.begin(915E6)) {
       while (1){
         digitalWrite(LED_BUILTIN, HIGH);
@@ -91,6 +102,12 @@ void LoRaTransmitSingle(){
     LoRa.print(" RH: "); LoRa.print(data.rh);
     LoRa.print(" CO2: "); LoRa.print(data.co2);
     LoRa.print(" CH4: "); LoRa.print(data.ch4);
+    if (calibration){
+      LoRa.print(" Type: Calibration");
+    } else {
+      LoRa.print(" Type: Measurement");
+    }
+    
     LoRa.endPacket();
 
     LoRa.end();
@@ -131,7 +148,7 @@ void closeVent(){
   digitalWrite(PIN_MOTOR_REVERSE_PWM, LOW); // Stop motor
 }
 
-void readDataBlocking(){
+void readDataBlocking(bool calibration = false){
   k33.initPoll();
   delay(CO2_GAS_DIFFUSION_DURATION);
 
@@ -146,6 +163,12 @@ void readDataBlocking(){
   delay(20);
   snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
   delay(20);
+
+  if (calibration){
+    snprintf(data.type, sizeof(data.type), "%d", TYPE_CALIBRATION);
+  } else {
+    snprintf(data.type, sizeof(data.type), "%d", TYPE_MEASUREMENT);
+  }
   
   if (Serial) {
     Serial.print("Date: "); Serial.print(data.date);
@@ -154,6 +177,7 @@ void readDataBlocking(){
     Serial.print(" Temp (C): "); Serial.print(data.temp);
     Serial.print(" RH (%): "); Serial.print(data.rh);
     Serial.print(" CH4 (V): "); Serial.println(data.ch4);
+    Serial.print(" Type: "); Serial.println(data.type);
   }
 }
 
@@ -221,60 +245,71 @@ void loop() {
         }
         stateStartMillis = millis();
         initStartUnixTime_s = rtc.now().unixtime();
-        digitalWrite(PIN_FAN, HIGH);
         // open vent 
         openVent();
-      }
-      else if (millis() - stateStartMillis >= FLUSH_DURATION) { // Enter when flush is complete
-        // state = ACCUMULATE_GAS;
+        digitalWrite(PIN_FAN, HIGH);
+        delay(FAN_ON_DURATION);
+        // Sleep a bit before starting sensor reading procedure
+        digitalWrite(PIN_FAN, LOW);
+        delay(CALIBRATE_DURATION - CO2_GAS_DIFFUSION_DURATION); // Wait for calibration duration
+        readDataBlocking(true); // Read data after calibration duration
+        log_data(data, datalogFile); // Log data after calibration duration
+        LoRaTransmitSingle(true); // Transmit data after calibration duration
+        closeVent();
         state = ACCUMULATE_AND_READ;
         stateStartMillis = 0;
-        digitalWrite(PIN_FAN, LOW);
-        closeVent();
       }
       break;
     }
 
     case ACCUMULATE_AND_READ: {
       // Let gas accumulate in chamber through diffusive flux and read data from sensors periodically
-      unsigned long elapsedTime = rtc.now().unixtime() - initStartUnixTime_s;
+      unsigned long elapsedTime = rtc.now().unixtime() - accumulateStartUnixTime_s;
       if (stateStartMillis == 0) {
         if (Serial){
           Serial.println("ACCUMULATE_AND_READ");
         }
         stateStartMillis = millis();
       }
-      else if (elapsedTime >= (MEASUREMENT_WINDOW / 1000)) { // Accumulate and read for a set duration
-        state = LORA_TRANSMIT; // Move to LORA_TRANSMIT state after the accumulation and reading duration
-        stateStartMillis = 0;
-      }
-      else if (elapsedTime < (MEASUREMENT_WINDOW / 1000)) { 
+      // else if (elapsedTime >= (MEASUREMENT_WINDOW / 1000)) { // Accumulate and read for a set duration
+      //   state = SLEEP_AND_TRANSMIT; // Move to SLEEP_AND_TRANSMIT state after the accumulation and reading duration
+      //   stateStartMillis = 0;
+      // }
+      else if (MEASUREMENT_COUNT > 0) { // Read data at set intervals
         // send message to CO2 sensor to start reading data
-        k33.initPoll();
-
-        // Sleep for the duration of CO2 gas diffusion
-        LowPower.sleep(CO2_GAS_DIFFUSION_DURATION); 
-
-        // get data
-        rtc_get_time(1, data.date, sizeof(data.date));
-        rtc_get_time(2, data.time, sizeof(data.time));
-        snprintf(data.temp, sizeof(data.temp), "%.1f", k33.readTemp());
-        delay(20);
-        snprintf(data.rh, sizeof(data.rh), "%.1f", k33.readRh());
-        delay(20);
-        snprintf(data.co2, sizeof(data.co2), "%.1f", k33.readCo2());
-        delay(20);
-        snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
-        delay(20);
-
-        // write to SD
-        log_data(data, datalogFile); 
-
-        // send LoRa transmission
-        LoRaTransmitSingle();
-
-        // sleep until the next measurement interval
-        LowPower.sleep(MEASUREMENT_INTERVAL - CO2_GAS_DIFFUSION_DURATION); // Sleep for the remaining time in the measurement interval. Subtract 300 ms to not overshoot
+        for (int i = 0; i < MEASUREMENT_COUNT; i++) {
+          k33.initPoll();
+          
+          // Sleep for the duration of CO2 gas diffusion
+          LowPower.sleep(CO2_GAS_DIFFUSION_DURATION); 
+          
+          // get data
+          unsigned long procTime = millis();
+          rtc_get_time(1, data.date, sizeof(data.date));
+          rtc_get_time(2, data.time, sizeof(data.time));
+          snprintf(data.temp, sizeof(data.temp), "%.1f", k33.readTemp());
+          delay(20);
+          snprintf(data.rh, sizeof(data.rh), "%.1f", k33.readRh());
+          delay(20);
+          snprintf(data.co2, sizeof(data.co2), "%.1f", k33.readCo2());
+          delay(20);
+          snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
+          delay(20);
+          snprintf(data.type, sizeof(data.type), "%d", TYPE_MEASUREMENT);
+          delay(20);
+          
+          // write to SD
+          log_data(data, datalogFile); 
+          
+          // send LoRa transmission
+          LoRaTransmitSingle(false);
+          unsigned long totalProcTime = millis() - procTime;
+          
+          // sleep until the next measurement interval
+          LowPower.sleep(MEASUREMENT_INTERVAL - CO2_GAS_DIFFUSION_DURATION - totalProcTime); // Sleep for the remaining time in the measurement interval. Subtract 300 ms to not overshoot
+        }
+        state = SLEEP_AND_TRANSMIT; // Move to SLEEP_AND_TRANSMIT state after the accumulation and reading duration
+        stateStartMillis = 0;
       }
       break;
     }
@@ -348,6 +383,18 @@ void loop() {
       log_data(data, datalogFile); 
       state = LORA_TRANSMIT;
       break;
+    }
+
+    case SLEEP_AND_TRANSMIT:{
+        if (LORA_TRANSMISSIONS_COUNT > 0) {
+          for (unsigned long i = 0; i < LORA_TRANSMISSIONS_COUNT; i++) {
+            LowPower.sleep(LORA_TRANSMIT_INTERVAL); // Sleep for the duration of the LORA transmit interval before transmitting
+            LoRaTransmitSingle();
+          }
+        }
+        LowPower.sleep(FINAL_SLEEP_DURATION); // Sleep for the final duration before restarting the cycle
+        state = FLUSH_CHAMBER; // Restart the cycle
+        break;
     }
 
     case LORA_TRANSMIT:{
