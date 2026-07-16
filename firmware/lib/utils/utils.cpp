@@ -52,7 +52,8 @@ void log_data(const SensorData& d, const char* filename) {
   f.print(d.co2);  f.print(',');
   f.print(d.temp); f.print(',');
   f.print(d.rh);   f.print(',');
-  f.print(d.ch4);
+  f.print(d.ch4); f.print(',');
+  f.print(d.type);
   f.println();
 
   f.close();
@@ -81,6 +82,7 @@ void rtc_init(bool setTime) {
 
     rtc.disableAlarm(2);
     rtc.writeSqwPinMode(DS3231_OFF);
+    delay(100);
 }
 
 void rtc_print_time(int mode){
