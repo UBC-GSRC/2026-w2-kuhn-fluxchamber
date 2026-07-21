@@ -45,6 +45,7 @@ void setup()
   pinMode(LED_BUILTIN, OUTPUT);
 
   // LED OFF by default
+  blink();
   digitalWrite(LED_BUILTIN, LOW);
 
   Serial.begin(9600);
@@ -82,7 +83,6 @@ void setup()
   {
     Serial.println("LoRa Receiver Ready");
   }
-  blink();
 }
 
 void loop()
