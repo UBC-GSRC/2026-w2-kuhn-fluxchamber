@@ -24,6 +24,7 @@ struct SensorData {
   char co2[16];
   char ch4[16];
   char type[16];
+  char voltage[16];
 };
 void log_data(const SensorData& d, const char* filename);
 

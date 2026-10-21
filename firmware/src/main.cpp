@@ -6,9 +6,12 @@
 #include "ArduinoLowPower.h"
 #include "SerialCommands.h"
 #include <LoRa.h>
+#include "INA226.h"
 
 #define TYPE_CALIBRATION 0
 #define TYPE_MEASUREMENT 1
+#define TYPE_UNDER_VOLTAGE 2
+#define MINIMUM_VOLTAGE 12.25
 
 enum State {
   INIT,             // Initialize the system
@@ -30,6 +33,7 @@ enum State {
   ERROR             // Handle errors
 };
 
+INA226 INA(0x40);
 Co2Meter_K33 k33;
 MethaneSensor methaneSensor(0);
 State state = INIT;
@@ -50,7 +54,7 @@ const unsigned long ACCUMULATE_DURATION = 3 * 1000; // milliseconds
 const unsigned long MEASUREMENT_INTERVAL = 30 * 1000; // time between readings in milliseconds
 const unsigned long MEASUREMENT_WINDOW = 10 * 60 * 1000; // time window in which we take periodic measurements in milliseconds 
 const unsigned long MEASUREMENT_COUNT = (MEASUREMENT_WINDOW + 1000) / MEASUREMENT_INTERVAL; // number of measurements to take in the measurement window (adding a second to make sure integer division doesn't round down)
-const unsigned long SAMPLE_INTERVAL = 2 * 60 * 60 * 1000; // milliseconds
+const unsigned long SAMPLE_INTERVAL = 1 * 60 * 60 * 1000; // milliseconds
 const unsigned long CO2_GAS_DIFFUSION_DURATION = 25 * 1000; //  milliseconds
 const unsigned long FAKE_SLEEP_DURATION = 15 * 1000; //  milliseconds for testing
 const unsigned long LORA_TRANSMIT_INTERVAL = 10 * 60 * 1000; // milliseconds
@@ -102,6 +106,7 @@ void LoRaTransmitSingle(bool calibration = false){
     LoRa.print(" RH: "); LoRa.print(data.rh);
     LoRa.print(" CO2: "); LoRa.print(data.co2);
     LoRa.print(" CH4: "); LoRa.print(data.ch4);
+    LoRa.print(" V: "); LoRa.print(data.voltage);
     if (calibration){
       LoRa.print(" Type: Calibration");
     } else {
@@ -163,6 +168,8 @@ void readDataBlocking(bool calibration = false){
   delay(20);
   snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
   delay(20);
+  snprintf(data.voltage, sizeof(data.voltage), "%.3f", INA.getBusVoltage());
+  delay(20);
 
   if (calibration){
     snprintf(data.type, sizeof(data.type), "%d", TYPE_CALIBRATION);
@@ -178,6 +185,7 @@ void readDataBlocking(bool calibration = false){
     Serial.print(" RH (%): "); Serial.print(data.rh);
     Serial.print(" CH4 (V): "); Serial.println(data.ch4);
     Serial.print(" Type: "); Serial.println(data.type);
+    Serial.print(" Voltage: "); Serial.println(data.voltage);
   }
 }
 
@@ -204,6 +212,8 @@ void setup() {
     rtc_init(false); // false = do not set time
     Wire.begin();
     methaneSensor.begin();
+    INA.begin();
+    INA.setMaxCurrentShunt(1, 0.002);
 
     pinMode(PIN_WAKEUP, INPUT_PULLUP);
     pinMode(PIN_FAN, OUTPUT);
@@ -243,6 +253,28 @@ void loop() {
         if (Serial){
           Serial.println("FLUSH_CHAMBER");
         }
+        // Safety to prevent discharging past minimum safe voltage. Waits to get more charge from solar
+        // Sleep for a long time!
+        while (INA.isConnected() & INA.getBusVoltage() < MINIMUM_VOLTAGE){ 
+          rtc_get_time(1, data.date, sizeof(data.date));
+          rtc_get_time(2, data.time, sizeof(data.time));
+          snprintf(data.temp, sizeof(data.temp), "%.1f", 0);
+          delay(20);
+          snprintf(data.rh, sizeof(data.rh), "%.1f", 0);
+          delay(20);
+          snprintf(data.co2, sizeof(data.co2), "%.1f", 0);
+          delay(20);
+          snprintf(data.ch4, sizeof(data.ch4), "%.3f", 0);
+          delay(20);
+          snprintf(data.type, sizeof(data.type), "%d", TYPE_UNDER_VOLTAGE);
+          delay(20);
+          snprintf(data.voltage, sizeof(data.voltage), "%.3f", INA.getBusVoltage());
+          delay(20);
+          
+          log_data(data, datalogFile); 
+          LowPower.sleep(1 * 60 * 60 * 1000);
+        }
+
         stateStartMillis = millis();
         initStartUnixTime_s = rtc.now().unixtime();
         // open vent 
@@ -296,6 +328,8 @@ void loop() {
           snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
           delay(20);
           snprintf(data.type, sizeof(data.type), "%d", TYPE_MEASUREMENT);
+          delay(20);
+          snprintf(data.voltage, sizeof(data.voltage), "%.3f", INA.getBusVoltage());
           delay(20);
           
           // write to SD
@@ -353,6 +387,9 @@ void loop() {
         delay(20);
         snprintf(data.ch4, sizeof(data.ch4), "%.3f", methaneSensor.readVoltage());
         delay(20);
+        snprintf(data.voltage, sizeof(data.voltage), "%.3f", INA.getBusVoltage());
+        delay(20);
+          
         stateStartMillis = 0;
         
         if (Serial) {

@@ -53,7 +53,8 @@ void log_data(const SensorData& d, const char* filename) {
   f.print(d.temp); f.print(',');
   f.print(d.rh);   f.print(',');
   f.print(d.ch4); f.print(',');
-  f.print(d.type);
+  f.print(d.type); f.print(',');
+  f.print(d.voltage);
   f.println();
 
   f.close();

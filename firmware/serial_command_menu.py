@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 
 # ---- CONFIG ----
-COM_PORT = 'COM13'       # Change to your Arduino port
+COM_PORT = 'COM17'       # Change to your Arduino port
 BAUD_RATE = 9600
 START_MARKER = 255
 

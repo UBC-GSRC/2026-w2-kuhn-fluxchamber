@@ -182,24 +182,40 @@ void alarm_isr() { irq = true; }
 
 void test_RTC_alarm(void)
 {
+
   bool setTime = false;
   rtc_init(setTime);
 
+  
   // Placeholder for RTC alarm function test
   // Making it so, that the alarm will trigger an interrupt
   pinMode(CLOCK_INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN), alarm_isr, FALLING);
+  Serial.println(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN));
+
+  TEST_ASSERT_TRUE_MESSAGE(
+      digitalRead(CLOCK_INTERRUPT_PIN) == HIGH,
+      "Interrupt pin not HIGH before test"
+  );
+  
+  bool fired = rtc.alarmFired(1);
+  TEST_ASSERT_TRUE_MESSAGE(!fired, "RTC fired before alarm was set");
 
   rtc.setAlarm1(
         rtc.now() + TimeSpan(3),
-        DS3231_A1_Second // this mode triggers the alarm when the seconds match. See Doxygen for other options
+        DS3231_A1_Date // this mode triggers the alarm when the seconds match. See Doxygen for other options
   );
 
-  delay(3200);
-  int fired = rtc.alarmFired(1);
+  while (rtc.alarmFired(1) == false) {
+    delay(100);
+  }
+  bool fired2 = rtc.alarmFired(1);
+
   rtc.clearAlarm(1);
   detachInterrupt(digitalPinToInterrupt(CLOCK_INTERRUPT_PIN));
-  TEST_ASSERT_TRUE_MESSAGE(fired & irq, "Is the SQW pin of the RTC connected to the interrupt pin?");
+
+  TEST_ASSERT_TRUE_MESSAGE(fired2, "RTC alarm never fired");
+  TEST_ASSERT_TRUE_MESSAGE(irq, "Interrupt never triggered");
 }
 
 void run_all_tests() {
